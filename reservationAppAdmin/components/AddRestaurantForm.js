@@ -562,7 +562,7 @@ const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    paddingBottom: 100, // Ensure last elements are visible
+    paddingBottom: 100, 
   },
   header: {
     fontSize: 24,

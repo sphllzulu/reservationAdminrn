@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AdminLogin from './screens/AdminLogin';
-import AdminDashboard from './screens/AdminDashboard';
+
 import RestaurantManagement from './screens/RestaurantList';
 
 const Stack = createStackNavigator();
@@ -23,11 +23,7 @@ const App = () => {
           options={{ headerShown: true }} 
         />
 
-        <Stack.Screen 
-          name="AdminDashboard" 
-          component={AdminDashboard} 
-          options={{ title: 'Admin Dashboard' }} 
-        />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );
