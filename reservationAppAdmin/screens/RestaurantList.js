@@ -13,6 +13,8 @@ import {
 import axios from 'axios';
 import AddRestaurantForm from '../components/AddRestaurantForm'; 
 import { Ionicons } from '@expo/vector-icons';
+import LocationMap from '../components/LocationMarker';
+
 
 // Star Rating Component
 const StarRating = ({ rating }) => {
@@ -38,6 +40,7 @@ const RestaurantDetailsModal = ({
   onEdit, 
   onDelete 
 }) => {
+  const [activeTab, setActiveTab] = useState('Menu');
   if (!restaurant) return null;
 
   return (
@@ -69,55 +72,97 @@ const RestaurantDetailsModal = ({
             />
           )}
           
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Address:</Text>
-            <Text>{restaurant.address}</Text>
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'Menu' && styles.activeTab]}
+              onPress={() => setActiveTab('Menu')}
+            >
+              <Text style={[styles.tabButtonText, activeTab === 'Menu' && styles.activeTabText]}>Menu</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'Details' && styles.activeTab]}
+              onPress={() => setActiveTab('Details')}
+            >
+              <Text style={[styles.tabButtonText, activeTab === 'Details' && styles.activeTabText]}>Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'Reviews' && styles.activeTab]}
+              onPress={() => setActiveTab('Reviews')}
+            >
+              <Text style={[styles.tabButtonText, activeTab === 'Reviews' && styles.activeTabText]}>Reviews</Text>
+            </TouchableOpacity>
           </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone:</Text>
-            <Text>{restaurant.phone}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Cuisine:</Text>
-            <Text>{restaurant.cuisine}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Rating:</Text>
-            <StarRating rating={restaurant.rating} />
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Price:</Text>
-            <Text>${restaurant.pricePerReservation}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Dress Code:</Text>
-            <Text>{restaurant.dressCode}</Text>
-          </View>
-          
-          <Text style={styles.descriptionTitle}>Description:</Text>
-          <Text style={styles.description}>{restaurant.description}</Text>
-          
-          <Text style={styles.menuTitle}>Menu:</Text>
-          <FlatList
-            data={restaurant.menu}
-            renderItem={({ item }) => (
-              <View style={styles.menuItemContainer}>
-                <Text style={styles.menuItemName}>{item.name}</Text>
-                {item.image && (
-                  <Image 
-                    source={{ uri: item.image }} 
-                    style={styles.menuItemImage} 
-                  />
+
+          {activeTab === 'Menu' && (
+            <View>
+              <Text style={styles.menuTitle}>Menu:</Text>
+              <FlatList
+                data={restaurant.menu}
+                renderItem={({ item }) => (
+                  <View style={styles.menuItemContainer}>
+                    <Text style={styles.menuItemName}>{item.name}</Text>
+                    {item.image && (
+                      <Image 
+                        source={{ uri: item.image }} 
+                        style={styles.menuItemImage} 
+                      />
+                    )}
+                  </View>
                 )}
+                keyExtractor={(item, index) => index.toString()}
+              />
+            </View>
+          )}
+
+          {activeTab === 'Details' && (
+            <View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Address:</Text>
+                <Text>{restaurant.address}</Text>
               </View>
-            )}
-            keyExtractor={(item, index) => index.toString()}
-          />
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone:</Text>
+                <Text>{restaurant.phone}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Cuisine:</Text>
+                <Text>{restaurant.cuisine}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Rating:</Text>
+                <StarRating rating={restaurant.rating} />
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Price:</Text>
+                <Text>${restaurant.pricePerReservation}</Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Dress Code:</Text>
+                <Text>{restaurant.dressCode}</Text>
+              </View>
+              
+              <Text style={styles.descriptionTitle}>Description:</Text>
+              <Text style={styles.description}>{restaurant.description}</Text>
+              
+            </View>
+            
+          )}
+
+          {activeTab === 'Reviews' && (
+            <View>
+              {/* Add review content here */}
+              <LocationMap
+                  latitude={restaurant.latitude} 
+                  longitude={restaurant.longitude} 
+                  style={styles.modalMap}
+                />
+            </View>
+          )}
           
           <View style={styles.modalButtonContainer}>
             <TouchableOpacity 
@@ -410,6 +455,30 @@ const styles = StyleSheet.create({
     color: 'white',
     marginLeft: 8,
     fontWeight: 'bold',
+    
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 16,
+  },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  activeTab: {
+    backgroundColor: '#2C3E50',
+    borderColor: '#2C3E50',
+  },
+  tabButtonText: {
+    color: '#2C3E50',
+  },
+  activeTabText: {
+    color: 'white',
   },
 });
 
