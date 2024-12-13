@@ -38,9 +38,9 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
     origin: [
-      'exp:// 192.168.1.49:8081', 
-      'http://localhost:8081', 
-      'http:// 192.168.1.49:8081'
+      'exp://192.168.1.49:8081', 
+      'http://192.168.1.49:8081', 
+      'http://192.168.1.49:8081'
     ],
     credentials: true
   }));
@@ -128,35 +128,100 @@ app.get('/api/admin/users', async (req, res) => {
 const restaurantRouter = express.Router();
 
 
-restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
-    try {
-      const imagePaths = req.files.map(file => file.path);
+// restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
+//     try {
+//       const imagePaths = req.files.map(file => file.path);
       
-      // Parse menu from body
-      const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+//       // Parse menu from body
+//       const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
   
-      const restaurantData = {
-        ...req.body,
-        menu: menu.map(item => ({
-          name: item.name,
-          image: item.image
-        })),
-        images: imagePaths
-      };
+//       const restaurantData = {
+//         ...req.body,
+//         menu: menu.map(item => ({
+//           name: item.name,
+//           image: item.image
+//         })),
+//         images: imagePaths
+//       };
   
-      const newRestaurant = new Restaurant(restaurantData);
-      const savedRestaurant = await newRestaurant.save();
-      res.status(201).json(savedRestaurant);
-    } catch (error) {
-      console.error('Restaurant creation error:', error);
-      res.status(400).json({ 
-        message: 'Error creating restaurant', 
-        error: error.message 
-      });
-    }
-  });
+//       const newRestaurant = new Restaurant(restaurantData);
+//       const savedRestaurant = await newRestaurant.save();
+//       res.status(201).json(savedRestaurant);
+//     } catch (error) {
+//       console.error('Restaurant creation error:', error);
+//       res.status(400).json({ 
+//         message: 'Error creating restaurant', 
+//         error: error.message 
+//       });
+//     }
+//   });
+restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
+  try {
+    console.log('Request body:', req.body); // Log the request body
 
-// GET all restaurants
+    // Extract image paths
+    const imagePaths = req.files.map(file => file.path);
+
+    // Parse menu from body
+    const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+
+    // Parse availableTimeSlots from body
+    const availableTimeSlots = req.body.availableTimeSlots ? JSON.parse(req.body.availableTimeSlots) : [];
+
+    // Construct restaurant data
+    const restaurantData = {
+      ...req.body,
+      menu: menu.map(item => ({
+        name: item.name,
+        image: item.image
+      })),
+      images: imagePaths,
+      availableTimeSlots: availableTimeSlots.map(daySlot => ({
+        day: daySlot.day,
+        slots: daySlot.slots.map(slot => ({
+          time: slot.time,
+          maxReservations: parseInt(slot.maxReservations),
+          currentReservations: 0 // Initialize currentReservations to 0
+        }))
+      }))
+    };
+
+    // Validate required fields
+    const requiredFields = ['name', 'address', 'cuisine', 'location[latitude]', 'location[longitude]'];
+    for (let field of requiredFields) {
+      if (!req.body.location || !req.body.location.latitude || !req.body.location.longitude) {
+        return res.status(400).json({ message: 'Missing required location fields' });
+      }
+    }
+
+    // Validate availableTimeSlots
+    for (let daySlot of restaurantData.availableTimeSlots) {
+      for (let slot of daySlot.slots) {
+        if (!slot.time || !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.time)) {
+          return res.status(400).json({ message: 'Invalid time format in availableTimeSlots' });
+        }
+        if (!slot.maxReservations || isNaN(slot.maxReservations) || slot.maxReservations < 1) {
+          return res.status(400).json({ message: 'Invalid maxReservations in availableTimeSlots' });
+        }
+      }
+    }
+
+    // Create new restaurant
+    const newRestaurant = new Restaurant(restaurantData);
+    const savedRestaurant = await newRestaurant.save();
+
+    res.status(201).json(savedRestaurant);
+  } catch (error) {
+    console.error('Restaurant creation error:', error);
+    res.status(400).json({ 
+      message: 'Error creating restaurant', 
+      error: error.message 
+    });
+  }
+});
+
+
+//get restaurants
 restaurantRouter.get('/', async (req, res) => {
   try {
     const restaurants = await Restaurant.find();
@@ -181,42 +246,88 @@ restaurantRouter.get('/:id', async (req, res) => {
 
 // Update a restaurant by ID
 restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
-    try {
-      const imagePaths = req.files ? req.files.map(file => file.path) : [];
-      
-      // Parse menu from body
-      const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
-  
+  try {
+    const imagePaths = req.files ? req.files.map(file => file.path) : [];
+    
+    // Parse menu from body
+    const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+    
+    // Parse availableTimeSlots
+    const availableTimeSlots = req.body.availableTimeSlots 
+      ? JSON.parse(req.body.availableTimeSlots) 
+      : [];
+    
       const restaurantData = {
         ...req.body,
         menu: menu.map(item => ({
           name: item.name,
           image: item.image
         })),
-        images: imagePaths.length > 0 ? imagePaths : undefined
+        images: imagePaths.length > 0 ? imagePaths : undefined,
+        location: JSON.parse(req.body.location), // Parse the location object
+        availableTimeSlots: availableTimeSlots.map(daySlot => ({
+          day: daySlot.day,
+          slots: daySlot.slots.map(slot => ({
+            time: slot.time,
+            maxReservations: parseInt(slot.maxReservations),
+            currentReservations: 0
+          }))
+        }))
       };
-  
-      const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-        req.params.id, 
-        restaurantData, 
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
-  
-      if (!updatedRestaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.json(updatedRestaurant);
-    } catch (error) {
-      console.error('Restaurant update error:', error);
-      res.status(400).json({ 
-        message: 'Error updating restaurant', 
-        error: error.message 
-      });
+
+       // Validate location
+    if (!restaurantData.location || !restaurantData.location.latitude || !restaurantData.location.longitude) {
+      return res.status(400).json({ message: 'Location is required with valid latitude and longitude' });
     }
-  });
+
+    // const restaurantData = {
+    //   ...req.body,
+    //   menu: menu.map(item => ({
+    //     name: item.name,
+    //     image: item.image
+    //   })),
+    //   images: imagePaths.length > 0 ? imagePaths : undefined,
+    //   location: {
+    //     latitude: req.body['location[latitude]'],
+    //     longitude: req.body['location[longitude]']
+    //   },
+    //   availableTimeSlots: availableTimeSlots.map(daySlot => ({
+    //     day: daySlot.day,
+    //     slots: daySlot.slots.map(slot => ({
+    //       time: slot.time,
+    //       maxReservations: parseInt(slot.maxReservations),
+    //       currentReservations: 0
+    //     }))
+    //   }))
+    // };
+
+    // Remove undefined properties
+    Object.keys(restaurantData).forEach(key => 
+      restaurantData[key] === undefined && delete restaurantData[key]
+    );
+
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id, 
+      { $set: restaurantData }, 
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedRestaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+    res.json(updatedRestaurant);
+  } catch (error) {
+    console.error('Restaurant update error:', error);
+    res.status(400).json({ 
+      message: 'Error updating restaurant', 
+      error: error.message 
+    });
+  }
+});
+
 
 // Delete a restaurant by ID
 restaurantRouter.delete('/:id', async (req, res) => {
