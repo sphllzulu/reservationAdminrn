@@ -38,9 +38,9 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
     origin: [
-      'exp://192.168.1.49:8081', 
-      'http://192.168.1.49:8081', 
-      'http://192.168.1.49:8081'
+      'exp://192.168.18.15:8081', 
+      'http://192.168.18.15:8081', 
+      'http://192.168.18.15:8081'
     ],
     credentials: true
   }));
@@ -245,6 +245,88 @@ restaurantRouter.get('/:id', async (req, res) => {
 });
 
 // Update a restaurant by ID
+// restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
+//   try {
+//     const imagePaths = req.files ? req.files.map(file => file.path) : [];
+    
+//     // Parse menu from body
+//     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+    
+//     // Parse availableTimeSlots
+//     const availableTimeSlots = req.body.availableTimeSlots 
+//       ? JSON.parse(req.body.availableTimeSlots) 
+//       : [];
+    
+//       const restaurantData = {
+//         ...req.body,
+//         menu: menu.map(item => ({
+//           name: item.name,
+//           image: item.image
+//         })),
+//         images: imagePaths.length > 0 ? imagePaths : undefined,
+//         location: JSON.parse(req.body.location), // Parse the location object
+//         availableTimeSlots: availableTimeSlots.map(daySlot => ({
+//           day: daySlot.day,
+//           slots: daySlot.slots.map(slot => ({
+//             time: slot.time,
+//             maxReservations: parseInt(slot.maxReservations),
+//             currentReservations: 0
+//           }))
+//         }))
+//       };
+
+//        // Validate location
+//     if (!restaurantData.location || !restaurantData.location.latitude || !restaurantData.location.longitude) {
+//       return res.status(400).json({ message: 'Location is required with valid latitude and longitude' });
+//     }
+
+//     // const restaurantData = {
+//     //   ...req.body,
+//     //   menu: menu.map(item => ({
+//     //     name: item.name,
+//     //     image: item.image
+//     //   })),
+//     //   images: imagePaths.length > 0 ? imagePaths : undefined,
+//     //   location: {
+//     //     latitude: req.body['location[latitude]'],
+//     //     longitude: req.body['location[longitude]']
+//     //   },
+//     //   availableTimeSlots: availableTimeSlots.map(daySlot => ({
+//     //     day: daySlot.day,
+//     //     slots: daySlot.slots.map(slot => ({
+//     //       time: slot.time,
+//     //       maxReservations: parseInt(slot.maxReservations),
+//     //       currentReservations: 0
+//     //     }))
+//     //   }))
+//     // };
+
+//     // Remove undefined properties
+//     Object.keys(restaurantData).forEach(key => 
+//       restaurantData[key] === undefined && delete restaurantData[key]
+//     );
+
+//     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+//       req.params.id, 
+//       { $set: restaurantData }, 
+//       {
+//         new: true,
+//         runValidators: true,
+//       }
+//     );
+
+//     if (!updatedRestaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+//     res.json(updatedRestaurant);
+//   } catch (error) {
+//     console.error('Restaurant update error:', error);
+//     res.status(400).json({ 
+//       message: 'Error updating restaurant', 
+//       error: error.message 
+//     });
+//   }
+// });
 restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
   try {
     const imagePaths = req.files ? req.files.map(file => file.path) : [];
@@ -257,49 +339,37 @@ restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
       ? JSON.parse(req.body.availableTimeSlots) 
       : [];
     
-      const restaurantData = {
-        ...req.body,
-        menu: menu.map(item => ({
-          name: item.name,
-          image: item.image
-        })),
-        images: imagePaths.length > 0 ? imagePaths : undefined,
-        location: JSON.parse(req.body.location), // Parse the location object
-        availableTimeSlots: availableTimeSlots.map(daySlot => ({
-          day: daySlot.day,
-          slots: daySlot.slots.map(slot => ({
-            time: slot.time,
-            maxReservations: parseInt(slot.maxReservations),
-            currentReservations: 0
-          }))
-        }))
-      };
-
-       // Validate location
-    if (!restaurantData.location || !restaurantData.location.latitude || !restaurantData.location.longitude) {
-      return res.status(400).json({ message: 'Location is required with valid latitude and longitude' });
+    // Parse location carefully
+    let location;
+    try {
+      location = typeof req.body.location === 'string' 
+        ? JSON.parse(req.body.location) 
+        : req.body.location;
+    } catch (parseError) {
+      console.error('Location parsing error:', parseError);
+      return res.status(400).json({ message: 'Invalid location format' });
     }
 
-    // const restaurantData = {
-    //   ...req.body,
-    //   menu: menu.map(item => ({
-    //     name: item.name,
-    //     image: item.image
-    //   })),
-    //   images: imagePaths.length > 0 ? imagePaths : undefined,
-    //   location: {
-    //     latitude: req.body['location[latitude]'],
-    //     longitude: req.body['location[longitude]']
-    //   },
-    //   availableTimeSlots: availableTimeSlots.map(daySlot => ({
-    //     day: daySlot.day,
-    //     slots: daySlot.slots.map(slot => ({
-    //       time: slot.time,
-    //       maxReservations: parseInt(slot.maxReservations),
-    //       currentReservations: 0
-    //     }))
-    //   }))
-    // };
+    const restaurantData = {
+      ...req.body,
+      menu: menu.map(item => ({
+        name: item.name,
+        image: item.image
+      })),
+      images: imagePaths.length > 0 ? imagePaths : undefined,
+      location: {
+        latitude: location?.latitude || location?.lat,
+        longitude: location?.longitude || location?.lng
+      },
+      availableTimeSlots: availableTimeSlots.map(daySlot => ({
+        day: daySlot.day,
+        slots: daySlot.slots.map(slot => ({
+          time: slot.time,
+          maxReservations: parseInt(slot.maxReservations),
+          currentReservations: 0
+        }))
+      }))
+    };
 
     // Remove undefined properties
     Object.keys(restaurantData).forEach(key => 
@@ -327,7 +397,6 @@ restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
     });
   }
 });
-
 
 // Delete a restaurant by ID
 restaurantRouter.delete('/:id', async (req, res) => {
