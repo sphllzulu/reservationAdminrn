@@ -124,6 +124,43 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+//signout route
+app.post('/signout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.status(500).send({ message: 'Error signing out' });
+    res.clearCookie('connect.sid');
+    res.status(200).send({ message: 'Logged out' });
+  });
+});
+
+//profile section server logic
+// Add this route to your existing Express server file
+app.get('/api/admin/me', async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.session.userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Find the admin user and exclude the password
+    const admin = await User.findById(req.session.userId).select('-password');
+    
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    res.json({
+      id: admin._id,
+      email: admin.email,
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      role: admin.role
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching admin profile', error: error.message });
+  }
+});
+
 // Restaurant Routes
 const restaurantRouter = express.Router();
 
