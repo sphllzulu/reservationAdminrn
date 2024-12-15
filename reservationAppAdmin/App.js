@@ -6,7 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AdminLogin from './screens/AdminLogin';
 import RestaurantManagement from './screens/RestaurantList';
-import Profile from './screens/Profile'; // Example additional screen
+import ProfileScreen from './screens/Profile'; // Example additional screen
 import AddRestaurantForm from './components/AddRestaurantForm';
 
 const Stack = createStackNavigator();
@@ -30,7 +30,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen 
         name="Profile" 
-        component={Profile} 
+        component={ProfileScreen} 
         options={{ title: 'Admin Profile' }}
       />
       <Tab.Screen 
