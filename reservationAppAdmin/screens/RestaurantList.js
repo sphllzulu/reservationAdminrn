@@ -770,7 +770,7 @@ const RestaurantManagement = () => {
     >
       <View style={styles.restaurantItemContent}>
         <Image 
-          source={{ uri: `http://192.168.18.15:3000/${item.images[0]}` }} 
+          source={{ uri: `http://192.168.0.104:3000/${item.images[0]}` }} 
           style={styles.restaurantThumbnail} 
         />
         <View style={styles.restaurantDetails}>
