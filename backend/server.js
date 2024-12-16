@@ -38,9 +38,9 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
     origin: [
-      'exp://192.168.18.15:8081', 
-      'http://192.168.18.15:8081', 
-      'http://192.168.18.15:8081'
+      'exp://192.168.0.104:8081', 
+      'http://192.168.0.104:8081', 
+      'http://192.168.0.104:8081'
     ],
     credentials: true
   }));

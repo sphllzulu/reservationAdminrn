@@ -582,7 +582,7 @@ const RestaurantDetailsModal = ({
               data={restaurant.images}
               renderItem={({ item }) => (
                 <Image 
-                  source={{ uri: `http://192.168.18.15:3000/${restaurant.images[0]}` }} 
+                  source={{ uri: `http://192.168.0.104:3000/${restaurant.images[0]}` }} 
                   style={styles.modalImage} 
                 />
               )}
@@ -727,7 +727,7 @@ const RestaurantManagement = () => {
 
   const fetchRestaurants = async () => {
     try {
-      const response = await axios.get('http://192.168.18.15:3000/api/restaurants');
+      const response = await axios.get('http://192.168.0.104:3000/api/restaurants');
       setRestaurants(response.data);
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch restaurants');
@@ -736,7 +736,7 @@ const RestaurantManagement = () => {
 
   const handleDeleteRestaurant = async (restaurantId) => {
     try {
-      await axios.delete(`http://192.168.18.15:3000/api/restaurants/${restaurantId}`);
+      await axios.delete(`http://192.168.0.104:3000/api/restaurants/${restaurantId}`);
       fetchRestaurants();
       setIsDetailsModalVisible(false);
       Alert.alert('Success', 'Restaurant deleted successfully');

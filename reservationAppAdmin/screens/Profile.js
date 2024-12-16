@@ -211,7 +211,7 @@ const ProfileScreen = ({ navigation }) => {
     try {
       // Call logout endpoint
       await axios.post(
-        'http://192.168.18.15:3000/signout', 
+        'http://192.168.0.104:3000/signout', 
         {}, 
         { withCredentials: true }
       );
