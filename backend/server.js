@@ -10,7 +10,7 @@ const User = require('./models/admin');
 const Restaurant = require('./models/restaurant');
 const Restaurants = require('./models/analytics');
 const Reservation = require('./models/reservation');
-const User = require('./models/user')
+const Users = require('./models/user')
 
 
 const app = express();
@@ -456,10 +456,10 @@ restaurantRouter.delete('/:id', async (req, res) => {
 app.get('/analytics', async (req, res) => {
   try {
     // Count total restaurants
-    const totalRestaurants = await Restaurant.countDocuments();
+    const totalRestaurants = await Restaurants.countDocuments();
 
     // Count total users
-    const totalUsers = await User.countDocuments();
+    const totalUsers = await Users.countDocuments();
 
     // Aggregate reservations per restaurant
     const reservationsPerRestaurant = await Reservation.aggregate([

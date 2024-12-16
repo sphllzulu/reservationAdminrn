@@ -8,6 +8,7 @@ import AdminLogin from './screens/AdminLogin';
 import RestaurantManagement from './screens/RestaurantList';
 import ProfileScreen from './screens/Profile'; // Example additional screen
 import AddRestaurantForm from './components/AddRestaurantForm';
+import AnalyticsScreen from './screens/AnalyticsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -37,6 +38,11 @@ const TabNavigator = () => {
         name="AddRestaurantForm" 
         component={AddRestaurantForm} 
         options={{ title: 'Add Restaurant' }}
+      />
+      <Tab.Screen 
+        name="Analytics" 
+        component={AnalyticsScreen} 
+        options={{ title: 'Restaurant a' }}
       />
     </Tab.Navigator>
   );
