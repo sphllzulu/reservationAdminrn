@@ -8,9 +8,8 @@ const multer = require('multer');
 const path = require('path');
 const User = require('./models/admin');
 const Restaurant = require('./models/restaurant');
-const Restaurants = require('./models/analytics');
-const Reservation = require('./models/reservation');
-const Users = require('./models/user')
+const Reservation = require('./models/reservation')
+
 
 
 const app = express();
@@ -453,13 +452,13 @@ restaurantRouter.delete('/:id', async (req, res) => {
 });
 
 // Analytics endpoint
-app.get('/analytics', async (req, res) => {
+app.get('/reservation', async (req, res) => {
   try {
     // Count total restaurants
-    const totalRestaurants = await Restaurants.countDocuments();
+    const totalRestaurants = await Restaurant.countDocuments();
 
     // Count total users
-    const totalUsers = await Users.countDocuments();
+    const totalUsers = await User.countDocuments();
 
     // Aggregate reservations per restaurant
     const reservationsPerRestaurant = await Reservation.aggregate([
@@ -499,8 +498,22 @@ app.get('/analytics', async (req, res) => {
     res.status(500).json({ message: 'Error fetching analytics data' });
   }
 });
+//GET reservations
+app.get('/reservations', async (req, res) => {
+  try {
+    const reservations = await Reservation.find()
+      // .populate('userId', 'name') 
+      // .populate('restaurantId', 'name'); 
+
+    res.status(200).json(reservations);
+  } catch (error) {
+    console.error('Error fetching reservations:', error);
+    res.status(500).json({ message: 'Error fetching reservations' });
+  }
+});
 // Mount the router
 app.use('/api/restaurants', restaurantRouter);
+
 
 // Start server
 app.listen(PORT, () => {
