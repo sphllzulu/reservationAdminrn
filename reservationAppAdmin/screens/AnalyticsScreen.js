@@ -11,7 +11,7 @@ const AnalyticsScreen = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch('http://192.168.0.104:3000/analytics');
+        const response = await fetch('http://192.168.0.104:3000/reservation');
         const data = await response.json();
         setAnalyticsData(data);
       } catch (error) {
@@ -26,7 +26,7 @@ const AnalyticsScreen = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color="#1E88E5" />
       </View>
     );
   }
@@ -54,16 +54,16 @@ const AnalyticsScreen = () => {
     {
       name: 'Restaurants',
       population: totalRestaurants,
-      color: '#007bff',
-      legendFontColor: '#007bff',
-      legendFontSize: 12,
+      color: '#42A5F5',
+      legendFontColor: '#333',
+      legendFontSize: 14,
     },
     {
       name: 'Users',
       population: totalUsers,
-      color: '#28a745',
-      legendFontColor: '#28a745',
-      legendFontSize: 12,
+      color: '#66BB6A',
+      legendFontColor: '#333',
+      legendFontSize: 14,
     },
   ];
 
@@ -75,14 +75,19 @@ const AnalyticsScreen = () => {
       <BarChart
         data={barChartData}
         width={screenWidth - 40}
-        height={220}
+        height={250}
         chartConfig={{
-          backgroundColor: '#1cc910',
-          backgroundGradientFrom: '#eff3ff',
-          backgroundGradientTo: '#efefef',
+          backgroundGradientFrom: '#ffffff',
+          backgroundGradientTo: '#ffffff',
           decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
+          color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          style: { borderRadius: 10 },
+          propsForDots: {
+            r: '6',
+            strokeWidth: '2',
+            stroke: '#1E88E5',
+          },
         }}
         style={styles.chart}
         verticalLabelRotation={30}
@@ -92,7 +97,7 @@ const AnalyticsScreen = () => {
       <PieChart
         data={pieChartData}
         width={screenWidth - 40}
-        height={220}
+        height={250}
         chartConfig={{
           color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
         }}
@@ -108,35 +113,42 @@ const AnalyticsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f5f5f5',
     flexGrow: 1,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f5f5f5',
   },
   errorText: {
-    color: 'red',
+    color: '#D32F2F',
     fontSize: 16,
+    fontWeight: '500',
   },
   header: {
-    fontSize: 28,
-    fontWeight: '600',
+    fontSize: 32,
+    fontWeight: 'bold',
     marginBottom: 20,
-    color: '#333',
+    color: '#1E88E5',
+    textAlign: 'center',
   },
   subHeader: {
     fontSize: 20,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 20,
     marginBottom: 10,
-    color: '#555',
+    color: '#333',
   },
   chart: {
-    marginVertical: 10,
-    borderRadius: 8,
+    marginVertical: 15,
+    borderRadius: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
 });
 
