@@ -527,6 +527,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  SafeAreaView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -845,7 +846,8 @@ console.log('Longitude:', formData.location.longitude);
   };
 
   return (
-    <ScrollView 
+    <SafeAreaView>
+      <ScrollView 
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
@@ -1020,6 +1022,8 @@ console.log('Longitude:', formData.location.longitude);
 
       <Button title="Submit" onPress={handleSubmit} />
     </ScrollView>
+    </SafeAreaView>
+    
   );
 };
 
