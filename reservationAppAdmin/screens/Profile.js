@@ -177,7 +177,8 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  Alert 
+  Alert, 
+  SafeAreaView
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -236,7 +237,8 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View >
       <View style={styles.profileHeader}>
         <Text style={styles.profileTitle}>Admin Profile</Text>
       </View>
@@ -267,6 +269,8 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
+    
   );
 };
 

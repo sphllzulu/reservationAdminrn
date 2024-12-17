@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 
@@ -68,7 +68,8 @@ const AnalyticsScreen = () => {
   ];
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView>
+      <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Analytics</Text>
 
       <Text style={styles.subHeader}>Reservations Per Restaurant</Text>
@@ -107,6 +108,8 @@ const AnalyticsScreen = () => {
         absolute
       />
     </ScrollView>
+    </SafeAreaView>
+    
   );
 };
 

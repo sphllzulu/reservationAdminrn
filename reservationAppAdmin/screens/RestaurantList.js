@@ -562,13 +562,15 @@ const RestaurantDetailsModal = ({
   if (!restaurant) return null;
 
   return (
+  <SafeAreaView>
     <Modal
       animationType="slide"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      
+        <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="black" />
@@ -714,7 +716,10 @@ const RestaurantDetailsModal = ({
           </View>
         </View>
       </View>
+      
+      
     </Modal>
+    </SafeAreaView>
   );
 };
 
