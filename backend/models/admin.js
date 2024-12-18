@@ -26,6 +26,10 @@ const UserSchema = new mongoose.Schema({
     enum: ['USER', 'ADMIN', 'MANAGER'],
     default: 'USER'
   },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now

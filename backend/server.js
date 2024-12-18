@@ -164,6 +164,48 @@ app.get('/api/admin/me', async (req, res) => {
   }
 });
 
+// Endpoint to get all users with the role 'USER'
+app.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({ role: 'USER' });
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Endpoint to delete a user by ID
+app.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ message: 'User deleted successfully', user: deletedUser });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Endpoint to block a user by ID
+app.patch('/users/:id/block', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const blockedUser = await User.findByIdAndUpdate(
+      id,
+      { isBlocked: true },
+      { new: true }
+    );
+    if (!blockedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ message: 'User blocked successfully', user: blockedUser });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to block user' });
+  }
+});
+
 // Restaurant Routes
 const restaurantRouter = express.Router();
 
