@@ -11,7 +11,7 @@ const AnalyticsScreen = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch('http://192.168.0.104:3000/reservation');
+        const response = await fetch('http://192.168.1.48:3000/reservation');
         const data = await response.json();
         setAnalyticsData(data);
       } catch (error) {
