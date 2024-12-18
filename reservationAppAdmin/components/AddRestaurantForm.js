@@ -935,6 +935,15 @@ const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
       </TouchableOpacity>
 
       {showForm && (
+        <View style={styles.formContainer}>
+        {/* Close Button */}
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={toggleForm}
+        >
+          <Text style={styles.closeButtonText}>×</Text>
+        </TouchableOpacity>
+
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
@@ -1122,6 +1131,7 @@ const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
 
           <Button title="Submit" onPress={handleSubmit} />
         </ScrollView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -1132,7 +1142,27 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: "#f9f9f9",
+    borderRadius:20,
   },
+  formContainer: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    // width: '80%',
+    backgroundColor: '#1e90ff',
+    // borderTopLeftRadius: 20,
+    // borderBottomLeftRadius: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  
   header: {
     fontSize: 28,
     fontWeight: "600",
