@@ -17,7 +17,7 @@ const AdminLogin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://192.168.0.104:3000/api/auth/login',
+        'http://192.168.1.48:3000/api/auth/login',
         { email, password },
         { withCredentials: true }
       );
