@@ -32,7 +32,7 @@ const UserScreen = () => {
           text: 'Delete',
           onPress: async () => {
             try {
-              await axios.delete(`http://192.168.1.48t:3000/users/${id}`);
+              await axios.delete(`http://192.168.1.48:3000/users/${id}`);
               setUsers(users.filter((user) => user._id !== id)); // Update the UI
             } catch (err) {
               Alert.alert('Failed to delete the user');
