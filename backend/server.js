@@ -1,29 +1,35 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const User = require('./models/admin');
-const Restaurant = require('./models/restaurant');
-const Reservation = require('./models/reservation')
+
+import dotenv from 'dotenv'
+import express from 'express';
+import mongoose from 'mongoose';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
+import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
+import User from './models/admin.js';
+import Restaurant from './models/restaurant.js';
+import Reservation from './models/reservation.js';
+import { storage } from "./firebase.js";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 
 
+
+
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 
-const fs = require('fs');
+// const fs = require('fs');
 
 
 // Before your multer configuration
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// const uploadsDir = path.join(__dirname, 'uploads');
+// if (!fs.existsSync(uploadsDir)) {
+//   fs.mkdirSync(uploadsDir, { recursive: true });
+// }
 
 
 // MongoDB Connection
@@ -41,27 +47,52 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
     origin: [
-      'exp://192.168.1.48:8082', 
-      'http://192.168.1.48:8082', 
-      'http://192.168.1.48:8082'
+      'exp://192.168.1.48:8081', 
+      'http://192.168.1.48:8081', 
+      'http://192.168.1.48:8081'
     ],
     credentials: true
   }));
 app.use(express.json());
 
 // Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, 'uploads/');
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}-${file.originalname}`);
+//   }
+// });
+// const upload = multer({ storage });
+
+//New file upload
+const uploadImagesToFirebase = async (files) => {
+  try {
+    const imageUrls = [];
+
+    for (const file of files) {
+      // Create a storage reference for each image
+      const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
+
+      // Upload the file to Firebase Storage
+      const snapshot = await uploadBytes(fileRef, file.buffer);
+
+      // Get the public URL for the uploaded file
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      imageUrls.push(downloadURL);
+    }
+
+    return imageUrls; // Return all image URLs
+  } catch (error) {
+    console.error("Error uploading images to Firebase:", error);
+    throw new Error("Failed to upload images");
   }
-});
-const upload = multer({ storage });
+};
+
 
 // Session Configuration
 app.use(session({
@@ -237,12 +268,12 @@ const restaurantRouter = express.Router();
 //       });
 //     }
 //   });
-restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
+restaurantRouter.post("/", async (req, res) => {
   try {
-    console.log('Request body:', req.body); // Log the request body
+    console.log("Request body:", req.body);
 
-    // Extract image paths
-    const imagePaths = req.files.map(file => file.path);
+    // Upload images to Firebase and get their URLs
+    const imageUrls = await uploadImagesToFirebase(req.files);
 
     // Parse menu from body
     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
@@ -253,20 +284,21 @@ restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
     // Construct restaurant data
     const restaurantData = {
       ...req.body,
-      menu: menu.map(item => ({
+      menu: menu.map((item, index) => ({
         name: item.name,
-        image: item.image
+        image: imageUrls[index] || null, // Map uploaded image URLs to menu items
       })),
-      images: imagePaths,
-      availableTimeSlots: availableTimeSlots.map(daySlot => ({
+      images: imageUrls,
+      availableTimeSlots: availableTimeSlots.map((daySlot) => ({
         day: daySlot.day,
-        slots: daySlot.slots.map(slot => ({
+        slots: daySlot.slots.map((slot) => ({
           time: slot.time,
           maxReservations: parseInt(slot.maxReservations),
-          currentReservations: 0 // Initialize currentReservations to 0
-        }))
-      }))
+          currentReservations: 0, // Initialize currentReservations to 0
+        })),
+      })),
     };
+
 
     // Validate required fields
     const requiredFields = ['name', 'address', 'cuisine', 'location[latitude]', 'location[longitude]'];
@@ -409,9 +441,17 @@ restaurantRouter.get('/:id', async (req, res) => {
 //     });
 //   }
 // });
-restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
+restaurantRouter.put('/:id', async (req, res) => {
   try {
-    const imagePaths = req.files ? req.files.map(file => file.path) : [];
+    // Handle uploaded image files and extract URLs
+    const imageUrls = req.files ? await Promise.all(
+      req.files.map(async (file) => {
+        const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
+        const snapshot = await uploadBytes(fileRef, file.buffer);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+      })
+    ) : [];
     
     // Parse menu from body
     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
@@ -434,11 +474,11 @@ restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
 
     const restaurantData = {
       ...req.body,
-      menu: menu.map(item => ({
+      menu: menu.map((item, index) => ({
         name: item.name,
-        image: item.image
+        image: imageUrls[index] || null, // Map uploaded image URLs to menu items
       })),
-      images: imagePaths.length > 0 ? imagePaths : undefined,
+      images: imageUrls,
       location: {
         latitude: location?.latitude || location?.lat,
         longitude: location?.longitude || location?.lng
@@ -562,4 +602,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = app;
+export default app;
+
