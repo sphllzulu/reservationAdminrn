@@ -33,9 +33,9 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
     origin: [
-      'exp://192.168.1.48:8081', 
-      'http://192.168.1.48:8081', 
-      'http://192.168.1.48:8081'
+      'exp://192.168.0.104:8081', 
+      'http://192.168.0.104:8081', 
+      'http://192.168.0.104:8081'
     ],
     credentials: true
   }));
@@ -238,72 +238,6 @@ app.patch('/users/:id/block', async (req, res) => {
 const restaurantRouter = express.Router();
 
 
-
-// restaurantRouter.post("/", async (req, res) => {
-//   try {
-//     console.log("Request body:", req.body);
-
-//     // Upload images to Firebase and get their URLs
-//     const imageUrls = await uploadImagesToFirebase(req.files);
-
-//     // Parse menu from body
-//     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
-
-//     // Parse availableTimeSlots from body
-//     const availableTimeSlots = req.body.availableTimeSlots ? JSON.parse(req.body.availableTimeSlots) : [];
-
-//     // Construct restaurant data
-//     const restaurantData = {
-//       ...req.body,
-//       menu: menu.map((item, index) => ({
-//         name: item.name,
-//         image: imageUrls[index] || null, // Map uploaded image URLs to menu items
-//       })),
-//       images: imageUrls,
-//       availableTimeSlots: availableTimeSlots.map((daySlot) => ({
-//         day: daySlot.day,
-//         slots: daySlot.slots.map((slot) => ({
-//           time: slot.time,
-//           maxReservations: parseInt(slot.maxReservations),
-//           currentReservations: 0, // Initialize currentReservations to 0
-//         })),
-//       })),
-//     };
-
-
-//     // Validate required fields
-//     const requiredFields = ['name', 'address', 'cuisine', 'location[latitude]', 'location[longitude]'];
-//     for (let field of requiredFields) {
-//       if (!req.body.location || !req.body.location.latitude || !req.body.location.longitude) {
-//         return res.status(400).json({ message: 'Missing required location fields' });
-//       }
-//     }
-
-//     // Validate availableTimeSlots
-//     for (let daySlot of restaurantData.availableTimeSlots) {
-//       for (let slot of daySlot.slots) {
-//         if (!slot.time || !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.time)) {
-//           return res.status(400).json({ message: 'Invalid time format in availableTimeSlots' });
-//         }
-//         if (!slot.maxReservations || isNaN(slot.maxReservations) || slot.maxReservations < 1) {
-//           return res.status(400).json({ message: 'Invalid maxReservations in availableTimeSlots' });
-//         }
-//       }
-//     }
-
-//     // Create new restaurant
-//     const newRestaurant = new Restaurant(restaurantData);
-//     const savedRestaurant = await newRestaurant.save();
-
-//     res.status(201).json(savedRestaurant);
-//   } catch (error) {
-//     console.error('Restaurant creation error:', error);
-//     res.status(400).json({ 
-//       message: 'Error creating restaurant', 
-//       error: error.message 
-//     });
-//   }
-// });
 restaurantRouter.post("/", async (req, res) => {
   try {
     console.log("Request body:", req.body);
@@ -410,85 +344,6 @@ restaurantRouter.get('/:id', async (req, res) => {
   }
 });
 
-
-// restaurantRouter.put('/:id', async (req, res) => {
-//   try {
-//     // Handle uploaded image files and extract URLs
-//     const imageUrls = req.files ? await Promise.all(
-//       req.files.map(async (file) => {
-//         const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
-//         const snapshot = await uploadBytes(fileRef, file.buffer);
-//         const downloadURL = await getDownloadURL(snapshot.ref);
-//         return downloadURL;
-//       })
-//     ) : [];
-    
-//     // Parse menu from body
-//     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
-    
-//     // Parse availableTimeSlots
-//     const availableTimeSlots = req.body.availableTimeSlots 
-//       ? JSON.parse(req.body.availableTimeSlots) 
-//       : [];
-    
-//     // Parse location carefully
-//     let location;
-//     try {
-//       location = typeof req.body.location === 'string' 
-//         ? JSON.parse(req.body.location) 
-//         : req.body.location;
-//     } catch (parseError) {
-//       console.error('Location parsing error:', parseError);
-//       return res.status(400).json({ message: 'Invalid location format' });
-//     }
-
-//     const restaurantData = {
-//       ...req.body,
-//       menu: menu.map((item, index) => ({
-//         name: item.name,
-//         image: imageUrls[index] || null, // Map uploaded image URLs to menu items
-//       })),
-//       images: imageUrls,
-//       location: {
-//         latitude: location?.latitude || location?.lat,
-//         longitude: location?.longitude || location?.lng
-//       },
-//       availableTimeSlots: availableTimeSlots.map(daySlot => ({
-//         day: daySlot.day,
-//         slots: daySlot.slots.map(slot => ({
-//           time: slot.time,
-//           maxReservations: parseInt(slot.maxReservations),
-//           currentReservations: 0
-//         }))
-//       }))
-//     };
-
-//     // Remove undefined properties
-//     Object.keys(restaurantData).forEach(key => 
-//       restaurantData[key] === undefined && delete restaurantData[key]
-//     );
-
-//     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-//       req.params.id, 
-//       { $set: restaurantData }, 
-//       {
-//         new: true,
-//         runValidators: true,
-//       }
-//     );
-
-//     if (!updatedRestaurant) {
-//       return res.status(404).json({ message: 'Restaurant not found' });
-//     }
-//     res.json(updatedRestaurant);
-//   } catch (error) {
-//     console.error('Restaurant update error:', error);
-//     res.status(400).json({ 
-//       message: 'Error updating restaurant', 
-//       error: error.message 
-//     });
-//   }
-// });
 restaurantRouter.put('/:id', async (req, res) => {
   try {
     let restaurantImages = [];

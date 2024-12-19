@@ -12,7 +12,7 @@ const UserScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://192.168.1.48:3000/users');
+      const response = await axios.get('http://192.168.0.104:3000/users');
       setUsers(response.data);
     } catch (err) {
       setError('Failed to fetch users');
@@ -32,7 +32,7 @@ const UserScreen = () => {
           text: 'Delete',
           onPress: async () => {
             try {
-              await axios.delete(`http://192.168.1.48:3000/users/${id}`);
+              await axios.delete(`http://192.168.0.104:3000/users/${id}`);
               setUsers(users.filter((user) => user._id !== id)); // Update the UI
             } catch (err) {
               Alert.alert('Failed to delete the user');
@@ -46,7 +46,7 @@ const UserScreen = () => {
   // Block a user by ID
   const blockUser = async (id) => {
     try {
-      const response = await axios.patch(`http://192.168.1.48:3000/users/${id}/block`);
+      const response = await axios.patch(`http://192.168.0.104:3000/users/${id}/block`);
       setUsers(
         users.map((user) => (user._id === id ? response.data.user : user)) // Update the UI
       );

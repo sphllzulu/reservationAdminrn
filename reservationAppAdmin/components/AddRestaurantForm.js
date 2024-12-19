@@ -366,14 +366,14 @@ const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
       if (restaurant) {
         // Update existing restaurant
         response = await axios.put(
-          `http://192.168.1.48:3000/api/restaurants/${restaurant._id}`,
+          `http://192.168.0.104:3000/api/restaurants/${restaurant._id}`,
           form,
           config
         );
       } else {
         // Create new restaurant
         response = await axios.post(
-          "http://192.168.1.48:3000/api/restaurants",
+          "http://192.168.0.104:3000/api/restaurants",
           form,
           config
         );

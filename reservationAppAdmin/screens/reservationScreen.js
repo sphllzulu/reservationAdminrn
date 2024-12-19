@@ -20,7 +20,7 @@ const ReservationManager = () => {
 
   const fetchReservations = async () => {
     try {
-      const response = await fetch(`http://192.168.1.48:3000/reservations`);
+      const response = await fetch(`http://192.168.0.104:3000/reservations`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }

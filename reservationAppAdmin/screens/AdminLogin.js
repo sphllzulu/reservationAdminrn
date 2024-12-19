@@ -17,7 +17,7 @@ const AdminLogin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://192.168.1.48:3000/api/auth/login',
+        'http://192.168.0.104:3000/api/auth/login',
         { email, password },
         { withCredentials: true }
       );
@@ -48,6 +48,7 @@ const AdminLogin = ({ navigation }) => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        placeholderTextColor="#6c757d"
       />
       <TextInput
         style={styles.input}
@@ -56,10 +57,11 @@ const AdminLogin = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
         autoCapitalize="none"
+        placeholderTextColor="#6c757d"
       />
 
       <TouchableOpacity 
-        style={styles.button} 
+        style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleLogin} 
         disabled={loading}
       >
@@ -77,31 +79,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#343a40',
+    marginBottom: 30,
   },
   input: {
     width: '100%',
-    padding: 10,
+    padding: 15,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 15,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    fontSize: 16,
+    color: '#495057',
   },
   button: {
     backgroundColor: '#007BFF',
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 8,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buttonDisabled: {
+    backgroundColor: '#6c757d',
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
 

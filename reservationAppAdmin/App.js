@@ -29,7 +29,7 @@ const TabNavigator = () => {
       <Tab.Screen 
         name="RestaurantManagement" 
         component={RestaurantManagement} 
-        options={{ title: 'Manage Restaurants' }}
+        options={{ title: 'Manage Restaurants'}}
       />
       <Tab.Screen 
         name="Profile" 
@@ -68,7 +68,7 @@ const App = () => {
         <Stack.Screen 
           name="AdminLogin" 
           component={AdminLogin} 
-          options={{ headerShown: true }} 
+          options={{ headerShown: false }} 
         />
         <Stack.Screen 
           name="Main" 
