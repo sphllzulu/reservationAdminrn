@@ -14,23 +14,9 @@ import { storage } from "./firebase.js";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 
-
-
-
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-
-// const fs = require('fs');
-
-
-// Before your multer configuration
-// const uploadsDir = path.join(__dirname, 'uploads');
-// if (!fs.existsSync(uploadsDir)) {
-//   fs.mkdirSync(uploadsDir, { recursive: true });
-// }
-
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -55,38 +41,49 @@ app.use(cors({
   }));
 app.use(express.json());
 
-// Serve uploaded files statically
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Multer configuration for file uploads
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, 'uploads/');
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, `${Date.now()}-${file.originalname}`);
-//   }
-// });
-// const upload = multer({ storage });
-
+//
+const convertBase64ToBuffer = (base64String) => {
+  // Remove the data:image/jpeg;base64, prefix if it exists
+  const base64WithoutPrefix = base64String.replace(/^data:image\/\w+;base64,/, '');
+  return Buffer.from(base64WithoutPrefix, 'base64');
+};
 //New file upload
-const uploadImagesToFirebase = async (files) => {
+// Updated uploadImagesToFirebase function to handle both base64 and file uploads
+const uploadImagesToFirebase = async (images) => {
   try {
     const imageUrls = [];
 
-    for (const file of files) {
-      // Create a storage reference for each image
-      const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
+    for (const image of images) {
+      let buffer;
+      let fileName;
 
-      // Upload the file to Firebase Storage
-      const snapshot = await uploadBytes(fileRef, file.buffer);
+      if (typeof image === 'string' && image.startsWith('data:image')) {
+        // Handle base64 string
+        buffer = convertBase64ToBuffer(image);
+        fileName = `restaurants/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      } else if (image.buffer) {
+        // Handle multer file
+        buffer = image.buffer;
+        fileName = `restaurants/${Date.now()}_${image.originalname}`;
+      } else {
+        continue; // Skip invalid image data
+      }
 
-      // Get the public URL for the uploaded file
+      // Create a storage reference
+      const fileRef = ref(storage, fileName);
+
+      // Upload to Firebase Storage
+      const snapshot = await uploadBytes(fileRef, buffer, {
+        contentType: 'image/jpeg'
+      });
+
+      // Get the public URL
       const downloadURL = await getDownloadURL(snapshot.ref);
       imageUrls.push(downloadURL);
     }
 
-    return imageUrls; // Return all image URLs
+    return imageUrls;
   } catch (error) {
     console.error("Error uploading images to Firebase:", error);
     throw new Error("Failed to upload images");
@@ -241,83 +238,138 @@ app.patch('/users/:id/block', async (req, res) => {
 const restaurantRouter = express.Router();
 
 
-// restaurantRouter.post('/', upload.array('images', 10), async (req, res) => {
-//     try {
-//       const imagePaths = req.files.map(file => file.path);
-      
-//       // Parse menu from body
-//       const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
-  
-//       const restaurantData = {
-//         ...req.body,
-//         menu: menu.map(item => ({
-//           name: item.name,
-//           image: item.image
+
+// restaurantRouter.post("/", async (req, res) => {
+//   try {
+//     console.log("Request body:", req.body);
+
+//     // Upload images to Firebase and get their URLs
+//     const imageUrls = await uploadImagesToFirebase(req.files);
+
+//     // Parse menu from body
+//     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+
+//     // Parse availableTimeSlots from body
+//     const availableTimeSlots = req.body.availableTimeSlots ? JSON.parse(req.body.availableTimeSlots) : [];
+
+//     // Construct restaurant data
+//     const restaurantData = {
+//       ...req.body,
+//       menu: menu.map((item, index) => ({
+//         name: item.name,
+//         image: imageUrls[index] || null, // Map uploaded image URLs to menu items
+//       })),
+//       images: imageUrls,
+//       availableTimeSlots: availableTimeSlots.map((daySlot) => ({
+//         day: daySlot.day,
+//         slots: daySlot.slots.map((slot) => ({
+//           time: slot.time,
+//           maxReservations: parseInt(slot.maxReservations),
+//           currentReservations: 0, // Initialize currentReservations to 0
 //         })),
-//         images: imagePaths
-//       };
-  
-//       const newRestaurant = new Restaurant(restaurantData);
-//       const savedRestaurant = await newRestaurant.save();
-//       res.status(201).json(savedRestaurant);
-//     } catch (error) {
-//       console.error('Restaurant creation error:', error);
-//       res.status(400).json({ 
-//         message: 'Error creating restaurant', 
-//         error: error.message 
-//       });
+//       })),
+//     };
+
+
+//     // Validate required fields
+//     const requiredFields = ['name', 'address', 'cuisine', 'location[latitude]', 'location[longitude]'];
+//     for (let field of requiredFields) {
+//       if (!req.body.location || !req.body.location.latitude || !req.body.location.longitude) {
+//         return res.status(400).json({ message: 'Missing required location fields' });
+//       }
 //     }
-//   });
+
+//     // Validate availableTimeSlots
+//     for (let daySlot of restaurantData.availableTimeSlots) {
+//       for (let slot of daySlot.slots) {
+//         if (!slot.time || !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.time)) {
+//           return res.status(400).json({ message: 'Invalid time format in availableTimeSlots' });
+//         }
+//         if (!slot.maxReservations || isNaN(slot.maxReservations) || slot.maxReservations < 1) {
+//           return res.status(400).json({ message: 'Invalid maxReservations in availableTimeSlots' });
+//         }
+//       }
+//     }
+
+//     // Create new restaurant
+//     const newRestaurant = new Restaurant(restaurantData);
+//     const savedRestaurant = await newRestaurant.save();
+
+//     res.status(201).json(savedRestaurant);
+//   } catch (error) {
+//     console.error('Restaurant creation error:', error);
+//     res.status(400).json({ 
+//       message: 'Error creating restaurant', 
+//       error: error.message 
+//     });
+//   }
+// });
 restaurantRouter.post("/", async (req, res) => {
   try {
     console.log("Request body:", req.body);
 
-    // Upload images to Firebase and get their URLs
-    const imageUrls = await uploadImagesToFirebase(req.files);
+    let restaurantImages = [];
+    let menuImages = [];
 
-    // Parse menu from body
-    const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
+    // Handle base64 images if they exist in the request
+    if (req.body.images) {
+      const images = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+      restaurantImages = await uploadImagesToFirebase(images);
+    }
 
-    // Parse availableTimeSlots from body
-    const availableTimeSlots = req.body.availableTimeSlots ? JSON.parse(req.body.availableTimeSlots) : [];
+    // Parse and handle menu items with their images
+    let menu = [];
+    if (req.body.menu) {
+      const menuItems = typeof req.body.menu === 'string' ? 
+        JSON.parse(req.body.menu) : req.body.menu;
+
+      // Upload menu images and create menu items
+      for (const item of menuItems) {
+        let imageUrl = null;
+        if (item.image) {
+          const uploadedUrls = await uploadImagesToFirebase([item.image]);
+          imageUrl = uploadedUrls[0];
+        }
+        menu.push({
+          name: item.name,
+          image: imageUrl
+        });
+      }
+    }
+
+    // Parse availableTimeSlots
+    const availableTimeSlots = req.body.availableTimeSlots ? 
+      (typeof req.body.availableTimeSlots === 'string' ? 
+        JSON.parse(req.body.availableTimeSlots) : req.body.availableTimeSlots) : [];
+
+    // Handle location
+    const location = req.body.location ? 
+      (typeof req.body.location === 'string' ? 
+        JSON.parse(req.body.location) : req.body.location) : 
+      { latitude: 0, longitude: 0 };
 
     // Construct restaurant data
     const restaurantData = {
       ...req.body,
-      menu: menu.map((item, index) => ({
-        name: item.name,
-        image: imageUrls[index] || null, // Map uploaded image URLs to menu items
-      })),
-      images: imageUrls,
+      menu,
+      images: restaurantImages,
+      location: {
+        latitude: location.latitude || location.lat,
+        longitude: location.longitude || location.lng
+      },
       availableTimeSlots: availableTimeSlots.map((daySlot) => ({
         day: daySlot.day,
         slots: daySlot.slots.map((slot) => ({
           time: slot.time,
           maxReservations: parseInt(slot.maxReservations),
-          currentReservations: 0, // Initialize currentReservations to 0
+          currentReservations: 0,
         })),
       })),
     };
 
-
     // Validate required fields
-    const requiredFields = ['name', 'address', 'cuisine', 'location[latitude]', 'location[longitude]'];
-    for (let field of requiredFields) {
-      if (!req.body.location || !req.body.location.latitude || !req.body.location.longitude) {
-        return res.status(400).json({ message: 'Missing required location fields' });
-      }
-    }
-
-    // Validate availableTimeSlots
-    for (let daySlot of restaurantData.availableTimeSlots) {
-      for (let slot of daySlot.slots) {
-        if (!slot.time || !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.time)) {
-          return res.status(400).json({ message: 'Invalid time format in availableTimeSlots' });
-        }
-        if (!slot.maxReservations || isNaN(slot.maxReservations) || slot.maxReservations < 1) {
-          return res.status(400).json({ message: 'Invalid maxReservations in availableTimeSlots' });
-        }
-      }
+    if (!restaurantData.location.latitude || !restaurantData.location.longitude) {
+      return res.status(400).json({ message: 'Missing required location fields' });
     }
 
     // Create new restaurant
@@ -358,10 +410,18 @@ restaurantRouter.get('/:id', async (req, res) => {
   }
 });
 
-// Update a restaurant by ID
-// restaurantRouter.put('/:id', upload.array('images', 10), async (req, res) => {
+
+// restaurantRouter.put('/:id', async (req, res) => {
 //   try {
-//     const imagePaths = req.files ? req.files.map(file => file.path) : [];
+//     // Handle uploaded image files and extract URLs
+//     const imageUrls = req.files ? await Promise.all(
+//       req.files.map(async (file) => {
+//         const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
+//         const snapshot = await uploadBytes(fileRef, file.buffer);
+//         const downloadURL = await getDownloadURL(snapshot.ref);
+//         return downloadURL;
+//       })
+//     ) : [];
     
 //     // Parse menu from body
 //     const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
@@ -371,49 +431,37 @@ restaurantRouter.get('/:id', async (req, res) => {
 //       ? JSON.parse(req.body.availableTimeSlots) 
 //       : [];
     
-//       const restaurantData = {
-//         ...req.body,
-//         menu: menu.map(item => ({
-//           name: item.name,
-//           image: item.image
-//         })),
-//         images: imagePaths.length > 0 ? imagePaths : undefined,
-//         location: JSON.parse(req.body.location), // Parse the location object
-//         availableTimeSlots: availableTimeSlots.map(daySlot => ({
-//           day: daySlot.day,
-//           slots: daySlot.slots.map(slot => ({
-//             time: slot.time,
-//             maxReservations: parseInt(slot.maxReservations),
-//             currentReservations: 0
-//           }))
-//         }))
-//       };
-
-//        // Validate location
-//     if (!restaurantData.location || !restaurantData.location.latitude || !restaurantData.location.longitude) {
-//       return res.status(400).json({ message: 'Location is required with valid latitude and longitude' });
+//     // Parse location carefully
+//     let location;
+//     try {
+//       location = typeof req.body.location === 'string' 
+//         ? JSON.parse(req.body.location) 
+//         : req.body.location;
+//     } catch (parseError) {
+//       console.error('Location parsing error:', parseError);
+//       return res.status(400).json({ message: 'Invalid location format' });
 //     }
 
-//     // const restaurantData = {
-//     //   ...req.body,
-//     //   menu: menu.map(item => ({
-//     //     name: item.name,
-//     //     image: item.image
-//     //   })),
-//     //   images: imagePaths.length > 0 ? imagePaths : undefined,
-//     //   location: {
-//     //     latitude: req.body['location[latitude]'],
-//     //     longitude: req.body['location[longitude]']
-//     //   },
-//     //   availableTimeSlots: availableTimeSlots.map(daySlot => ({
-//     //     day: daySlot.day,
-//     //     slots: daySlot.slots.map(slot => ({
-//     //       time: slot.time,
-//     //       maxReservations: parseInt(slot.maxReservations),
-//     //       currentReservations: 0
-//     //     }))
-//     //   }))
-//     // };
+//     const restaurantData = {
+//       ...req.body,
+//       menu: menu.map((item, index) => ({
+//         name: item.name,
+//         image: imageUrls[index] || null, // Map uploaded image URLs to menu items
+//       })),
+//       images: imageUrls,
+//       location: {
+//         latitude: location?.latitude || location?.lat,
+//         longitude: location?.longitude || location?.lng
+//       },
+//       availableTimeSlots: availableTimeSlots.map(daySlot => ({
+//         day: daySlot.day,
+//         slots: daySlot.slots.map(slot => ({
+//           time: slot.time,
+//           maxReservations: parseInt(slot.maxReservations),
+//           currentReservations: 0
+//         }))
+//       }))
+//     };
 
 //     // Remove undefined properties
 //     Object.keys(restaurantData).forEach(key => 
@@ -443,52 +491,55 @@ restaurantRouter.get('/:id', async (req, res) => {
 // });
 restaurantRouter.put('/:id', async (req, res) => {
   try {
-    // Handle uploaded image files and extract URLs
-    const imageUrls = req.files ? await Promise.all(
-      req.files.map(async (file) => {
-        const fileRef = ref(storage, `restaurants/${Date.now()}_${file.originalname}`);
-        const snapshot = await uploadBytes(fileRef, file.buffer);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        return downloadURL;
-      })
-    ) : [];
-    
-    // Parse menu from body
-    const menu = req.body.menu ? JSON.parse(req.body.menu) : [];
-    
-    // Parse availableTimeSlots
-    const availableTimeSlots = req.body.availableTimeSlots 
-      ? JSON.parse(req.body.availableTimeSlots) 
-      : [];
-    
-    // Parse location carefully
-    let location;
-    try {
-      location = typeof req.body.location === 'string' 
-        ? JSON.parse(req.body.location) 
-        : req.body.location;
-    } catch (parseError) {
-      console.error('Location parsing error:', parseError);
-      return res.status(400).json({ message: 'Invalid location format' });
+    let restaurantImages = [];
+    let menu = [];
+
+    // Handle restaurant images
+    if (req.body.images) {
+      const images = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+      restaurantImages = await uploadImagesToFirebase(images);
     }
+
+    // Handle menu items with images
+    if (req.body.menu) {
+      const menuItems = typeof req.body.menu === 'string' ? 
+        JSON.parse(req.body.menu) : req.body.menu;
+
+      for (const item of menuItems) {
+        let imageUrl = null;
+        if (item.image) {
+          const uploadedUrls = await uploadImagesToFirebase([item.image]);
+          imageUrl = uploadedUrls[0];
+        }
+        menu.push({
+          name: item.name,
+          image: imageUrl
+        });
+      }
+    }
+
+    // Parse location and availableTimeSlots
+    const location = typeof req.body.location === 'string' ? 
+      JSON.parse(req.body.location) : req.body.location;
+
+    const availableTimeSlots = req.body.availableTimeSlots ? 
+      (typeof req.body.availableTimeSlots === 'string' ? 
+        JSON.parse(req.body.availableTimeSlots) : req.body.availableTimeSlots) : [];
 
     const restaurantData = {
       ...req.body,
-      menu: menu.map((item, index) => ({
-        name: item.name,
-        image: imageUrls[index] || null, // Map uploaded image URLs to menu items
-      })),
-      images: imageUrls,
-      location: {
-        latitude: location?.latitude || location?.lat,
-        longitude: location?.longitude || location?.lng
-      },
+      menu,
+      images: restaurantImages.length > 0 ? restaurantImages : undefined,
+      location: location ? {
+        latitude: location.latitude || location.lat,
+        longitude: location.longitude || location.lng
+      } : undefined,
       availableTimeSlots: availableTimeSlots.map(daySlot => ({
         day: daySlot.day,
         slots: daySlot.slots.map(slot => ({
           time: slot.time,
           maxReservations: parseInt(slot.maxReservations),
-          currentReservations: 0
+          currentReservations: slot.currentReservations || 0
         }))
       }))
     };
@@ -501,10 +552,7 @@ restaurantRouter.put('/:id', async (req, res) => {
     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
       req.params.id, 
       { $set: restaurantData }, 
-      {
-        new: true,
-        runValidators: true,
-      }
+      { new: true, runValidators: true }
     );
 
     if (!updatedRestaurant) {
@@ -584,8 +632,8 @@ app.get('/reservation', async (req, res) => {
 app.get('/reservations', async (req, res) => {
   try {
     const reservations = await Reservation.find()
-      // .populate('userId', 'name') 
-      // .populate('restaurantId', 'name'); 
+      .populate('userId', 'name') 
+      .populate('restaurantId', 'name'); 
 
     res.status(200).json(reservations);
   } catch (error) {

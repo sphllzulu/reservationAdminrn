@@ -10,6 +10,7 @@ import ProfileScreen from './screens/Profile'; // Example additional screen
 import AddRestaurantForm from './components/AddRestaurantForm';
 import AnalyticsScreen from './screens/AnalyticsScreen';
 import UserScreen from './screens/UserScreen';
+import ReservationManager from './screens/reservationScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -49,6 +50,11 @@ const TabNavigator = () => {
         name="User " 
         component={UserScreen} 
         options={{ title: 'User manage' }}
+      />
+      <Tab.Screen 
+        name="Reservation " 
+        component={ReservationManager} 
+        options={{ title: 'Reservation' }}
       />
     </Tab.Navigator>
   );
