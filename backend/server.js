@@ -13,6 +13,7 @@ import Reservation from './models/reservation.js';
 import { storage } from "./firebase.js";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -331,7 +332,95 @@ restaurantRouter.get('/', async (req, res) => {
   }
 });
 
-// Get a restaurant by ID
+// // Get a restaurant by ID
+// restaurantRouter.get('/:id', async (req, res) => {
+//   try {
+//     const restaurant = await Restaurant.findById(req.params.id);
+//     if (!restaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+//     res.json(restaurant);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error fetching restaurant', error: error.message });
+//   }
+// });
+
+// // Update a restaurant by ID
+// restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     // Upload new images to Firebase
+//     const imageUrls = await Promise.all(
+//       req.files.map(async (file) => {
+//         return await uploadImageToFirebase(file);
+//       })
+//     );
+
+//     // Parse menu items
+//     const menuWithImageUrls = JSON.parse(req.body.menu).map((item) => {
+//       if (item.image) {
+//         return { ...item, image: item.image }; // Assuming image is already a URL
+//       }
+//       return item;
+//     });
+
+//     // Update restaurant document
+//     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+//       id,
+//       {
+//         ...req.body,
+//         images: imageUrls,
+//         menu: menuWithImageUrls,
+//       },
+//       { new: true }
+//     );
+
+//     if (!updatedRestaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+
+//     res.json({ message: 'Restaurant updated successfully', restaurant: updatedRestaurant });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'An error occurred' });
+//   }
+// });
+
+// // Delete a restaurant by ID
+// restaurantRouter.delete('/:id', async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const deletedRestaurant = await Restaurant.findByIdAndDelete(id);
+//     if (!deletedRestaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+//     res.json({ message: 'Restaurant deleted successfully' });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error deleting restaurant', error: error.message });
+//   }
+// });
+// NEEEEEEEWWWWWWW
+
+
+const deleteImageFromFirebase = async (imageUrl) => {
+  try {
+    // Create a reference to the file to delete
+    const fileRef = ref(storage, imageUrl);
+    
+    // Delete the file
+    await deleteObject(fileRef);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting from Firebase:', error);
+    throw error;
+  }
+};
+
+
+
+// Get single restaurant
 restaurantRouter.get('/:id', async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(req.params.id);
@@ -340,65 +429,247 @@ restaurantRouter.get('/:id', async (req, res) => {
     }
     res.json(restaurant);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching restaurant', error: error.message });
-  }
-});
-
-// Update a restaurant by ID
-restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Upload new images to Firebase
-    const imageUrls = await Promise.all(
-      req.files.map(async (file) => {
-        return await uploadImageToFirebase(file);
-      })
-    );
-
-    // Parse menu items
-    const menuWithImageUrls = JSON.parse(req.body.menu).map((item) => {
-      if (item.image) {
-        return { ...item, image: item.image }; // Assuming image is already a URL
-      }
-      return item;
-    });
-
-    // Update restaurant document
-    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-      id,
-      {
-        ...req.body,
-        images: imageUrls,
-        menu: menuWithImageUrls,
-      },
-      { new: true }
-    );
-
-    if (!updatedRestaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    res.json({ message: 'Restaurant updated successfully', restaurant: updatedRestaurant });
-  } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'An error occurred' });
   }
 });
 
-// Delete a restaurant by ID
-restaurantRouter.delete('/:id', async (req, res) => {
+////// update
+// PUT endpoint for updating restaurant
+restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
   try {
-    const { id } = req.params;
-    const deletedRestaurant = await Restaurant.findByIdAndDelete(id);
-    if (!deletedRestaurant) {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
-    res.json({ message: 'Restaurant deleted successfully' });
+
+    // Upload new images if any
+    let newImageUrls = [];
+    if (req.files && req.files.length > 0) {
+      newImageUrls = await Promise.all(
+        req.files.map(file => uploadImageToFirebase(file))
+      );
+    }
+
+    const {
+      name,
+      address,
+      phone,
+      cuisine,
+      description,
+      pricePerReservation,
+      dressCode,
+      amenities,
+      location,
+      availableTimeSlots,
+      menu,
+    } = req.body;
+
+    // Parse all fields that should be objects/arrays
+    let parsedData = {
+      name,
+      address,
+      phone,
+      cuisine,
+      description,
+      dressCode,
+    };
+
+    // Parse menu items
+    try {
+      if (menu) {
+        parsedData.menu = typeof menu === 'string' ? JSON.parse(menu) : menu;
+        parsedData.menu = parsedData.menu.map((item) => {
+          if (item.image) {
+            return { ...item, image: item.image }; // Keep existing image URL
+          }
+          return item;
+        });
+      }
+    } catch (error) {
+      console.error('Error parsing menu:', error);
+      return res.status(400).json({ message: 'Invalid menu format' });
+    }
+
+    // Parse and validate availableTimeSlots
+    try {
+      if (availableTimeSlots) {
+        let parsedTimeSlots = typeof availableTimeSlots === 'string' 
+          ? JSON.parse(availableTimeSlots) 
+          : availableTimeSlots;
+
+        // Validate time slots
+        parsedTimeSlots.forEach((slot) => {
+          if (slot.day) {
+            slot.day = slot.day.trim();
+          }
+
+          const allowedDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+          if (!allowedDays.includes(slot.day)) {
+            throw new Error(`Invalid day: ${slot.day}`);
+          }
+        });
+
+        parsedData.availableTimeSlots = parsedTimeSlots;
+      }
+    } catch (error) {
+      console.error('Error parsing availableTimeSlots:', error);
+      return res.status(400).json({ message: 'Invalid availableTimeSlots format' });
+    }
+
+    // Parse other JSON fields
+    try {
+      if (amenities) {
+        parsedData.amenities = typeof amenities === 'string' 
+          ? JSON.parse(amenities) 
+          : amenities;
+      }
+
+      if (location) {
+        parsedData.location = typeof location === 'string' 
+          ? JSON.parse(location) 
+          : location;
+      }
+    } catch (error) {
+      console.error('Error parsing JSON fields:', error);
+      return res.status(400).json({ message: 'Invalid JSON format in fields' });
+    }
+
+    // Handle price
+    if (pricePerReservation) {
+      parsedData.pricePerReservation = parseFloat(pricePerReservation);
+    }
+
+    // Combine existing and new images
+    parsedData.images = [...restaurant.images, ...newImageUrls];
+
+    // Update restaurant with all fields
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      parsedData,
+      { new: true }
+    );
+
+    res.json({
+      message: 'Restaurant updated successfully',
+      restaurant: updatedRestaurant
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting restaurant', error: error.message });
+    console.error('Error in PUT /restaurants/:id:', error);
+    res.status(500).json({ error: error.message });
   }
 });
+
+// DELETE endpoint for restaurant
+restaurantRouter.delete('/:id', async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // Delete images from Firebase Storage
+    await Promise.all(
+      restaurant.images.map(imageUrl => deleteImageFromFirebase(imageUrl))
+    );
+
+    // Delete restaurant document
+    await Restaurant.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Restaurant deleted successfully' });
+  } catch (error) {
+    console.error('Error in DELETE /restaurants/:id:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update restaurant
+// restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
+//   try {
+//     const restaurant = await Restaurant.findById(req.params.id);
+//     if (!restaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+
+//     // Handle new image uploads if any
+//     let newImageUrls = [];
+//     if (req.files && req.files.length > 0) {
+//       newImageUrls = await Promise.all(
+//         req.files.map(async (file) => {
+//           return await uploadImageToFirebase(file);
+//         })
+//       );
+//     }
+
+//     // Combine existing images with new ones
+//     const updatedImages = [...restaurant.images, ...newImageUrls];
+
+//     // Parse JSON strings from form data
+//     const amenities = req.body.amenities ? JSON.parse(req.body.amenities) : restaurant.amenities;
+//     const location = req.body.location ? JSON.parse(req.body.location) : restaurant.location;
+//     const menu = req.body.menu ? JSON.parse(req.body.menu) : restaurant.menu;
+//     const availableTimeSlots = req.body.availableTimeSlots 
+//       ? JSON.parse(req.body.availableTimeSlots) 
+//       : restaurant.availableTimeSlots;
+
+//     // Update restaurant document
+//     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+//       req.params.id,
+//       {
+//         name: req.body.name || restaurant.name,
+//         address: req.body.address || restaurant.address,
+//         phone: req.body.phone || restaurant.phone,
+//         cuisine: req.body.cuisine || restaurant.cuisine,
+//         description: req.body.description || restaurant.description,
+//         images: updatedImages,
+//         menu,
+//         pricePerReservation: req.body.pricePerReservation 
+//           ? parseFloat(req.body.pricePerReservation) 
+//           : restaurant.pricePerReservation,
+//         dressCode: req.body.dressCode || restaurant.dressCode,
+//         amenities,
+//         location,
+//         availableTimeSlots,
+//       },
+//       { new: true }
+//     );
+
+//     res.json(updatedRestaurant);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'An error occurred' });
+//   }
+// });
+
+// // Delete restaurant
+// restaurantRouter.delete('/:id', async (req, res) => {
+//   try {
+//     const restaurant = await Restaurant.findById(req.params.id);
+//     if (!restaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+
+//     // Delete images from Firebase Storage
+//     await Promise.all(
+//       restaurant.images.map(async (imageUrl) => {
+//         // Extract file name from URL
+//         const fileName = imageUrl.split('/').pop().split('?')[0];
+//         await deleteImageFromFirebase(fileName);
+//       })
+//     );
+
+//     // Delete restaurant document
+//     await Restaurant.findByIdAndDelete(req.params.id);
+
+//     res.json({ message: 'Restaurant deleted successfully' });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'An error occurred' });
+//   }
+// });
+
+
 
 // Analytics endpoint
 app.get('/reservation', async (req, res) => {
