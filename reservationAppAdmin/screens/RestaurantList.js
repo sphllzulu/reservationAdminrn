@@ -273,12 +273,7 @@ const RestaurantManagement = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Restaurant Management</Text>
-        {/* <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setIsEditModalVisible(true)}
-        >
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity> */}
+        
       </View>
 
       <FlatList

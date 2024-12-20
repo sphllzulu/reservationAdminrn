@@ -11,6 +11,7 @@ import AddRestaurantForm from './components/AddRestaurantForm';
 import AnalyticsScreen from './screens/AnalyticsScreen';
 import UserScreen from './screens/UserScreen';
 import ReservationManager from './screens/reservationScreen';
+import AddRestaurantScreen from './screens/AddRestaurantScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -38,7 +39,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen 
         name="AddRestaurantForm" 
-        component={AddRestaurantForm} 
+        component={AddRestaurantScreen} 
         options={{ title: 'Add Restaurant' }}
       />
       <Tab.Screen 

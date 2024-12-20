@@ -31,7 +31,8 @@
     "react-native-safe-area-context": "^5.0.0",
     "react-native-screens": "^4.3.0",
     "react-native-svg": "^15.10.1",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "expo-image-manipulator": "~13.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
