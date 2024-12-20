@@ -33,7 +33,7 @@ const RestaurantViewScreen = () => {
 
   const fetchRestaurant = async () => {
     try {
-      const response = await fetch(`http://192.168.0.104:3000/api/restaurants`);
+      const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants`);
       const data = await response.json();
       setRestaurant(data);
       setEditedData(data);
@@ -89,7 +89,7 @@ const RestaurantViewScreen = () => {
         });
       });
 
-      const response = await fetch(`http://192.168.0.104:3000/api/restaurants/${id}`, {
+      const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants/${id}`, {
         method: 'PUT',
         body: formData,
         headers: {
@@ -122,7 +122,7 @@ const RestaurantViewScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              const response = await fetch(`http://192.168.0.104:3000/api/restaurants/${id}`, {
+              const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants/${id}`, {
                 method: 'DELETE',
               });
 

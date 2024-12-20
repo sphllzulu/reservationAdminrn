@@ -131,7 +131,7 @@ const AddRestaurantScreen = ({ navigation }) => {
 
     try {
       const response = await axios.post(
-        "http://192.168.0.104:3000/api/restaurants", // Replace with your backend URL
+        "https://reservationadminrn-pdla.onrender.com/api/restaurants", // Replace with your backend URL
         formData,
         {
           headers: {

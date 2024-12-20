@@ -289,7 +289,7 @@ const RestaurantManagement = () => {
   const fetchRestaurants = async () => {
     try {
       const response = await axios.get(
-        "http://192.168.0.104:3000/api/restaurants"
+        "https://reservationadminrn-pdla.onrender.com/api/restaurants"
       );
       setRestaurants(response.data);
     } catch (error) {
@@ -300,7 +300,7 @@ const RestaurantManagement = () => {
   const handleDeleteRestaurant = async (restaurantId) => {
     try {
       await axios.delete(
-        `http://192.168.0.104:3000/api/restaurants/${restaurantId}`
+        `https://reservationadminrn-pdla.onrender.com/api/restaurants/${restaurantId}`
       );
       fetchRestaurants();
       setIsDetailsModalVisible(false);
