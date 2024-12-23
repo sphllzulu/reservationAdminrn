@@ -52,9 +52,11 @@ const RestaurantSchema = new mongoose.Schema({
       comment: { type: String, required: true },
     },
   ],
-  images: {
-    type: [String],
-  },
+  images: [
+  {
+    type: String,
+  }
+],
   description: {
     type: String,
     required: true,

@@ -27,24 +27,24 @@ const AddRestaurantScreen = ({ navigation }) => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
 
   // Function to compress an image
-  const compressImage = async (uri) => {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: 800 } }], // Resize the image to a maximum width of 800px
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Compress the image to 70% quality
-    );
-    return result;
-  };
+  // const compressImage = async (uri) => {
+  //   const result = await ImageManipulator.manipulateAsync(
+  //     uri,
+  //     [{ resize: { width: 800 } }], // Resize the image to a maximum width of 800px
+  //     { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Compress the image to 70% quality
+  //   );
+  //   return result;
+  // };
 
   const handleAddImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
 
-    if (!result.canceled) {
-      const compressedImage = await compressImage(result.assets[0].uri);
-      setImages([...images, compressedImage.uri]);
-    }
+    // if (!result.canceled) {
+    //   const compressedImage = await compressImage(result.assets[0].uri);
+    //   setImages([...images, compressedImage.uri]);
+    // }
   };
 
   const handleAddMenuItem = () => {
@@ -104,34 +104,32 @@ const AddRestaurantScreen = ({ navigation }) => {
     formData.append("location", JSON.stringify(location));
     formData.append("availableTimeSlots", JSON.stringify(availableTimeSlots));
 
-    // Append restaurant images
-    for (let i = 0; i < images.length; i++) {
-      const imageUri = images[i];
-      const compressedImage = await compressImage(imageUri);
-      formData.append("images", {
-        uri: compressedImage.uri,
-        name: `restaurant_image_${i}.jpg`,
+    // Append restaurant images directly
+  for (let i = 0; i < images.length; i++) {
+    const imageUri = images[i];
+    formData.append("images", {
+      uri: imageUri,
+      name: `restaurant_image_${i}.jpg`,
+      type: "image/jpeg",
+    });
+  }
+
+  // Append menu items with images
+  menu.forEach((item, index) => {
+    formData.append(`menu[${index}][name]`, item.name);
+    if (item.image) {
+      formData.append(`menu[${index}][image]`, {
+        uri: item.image,
+        name: `menu_image_${index}.jpg`,
         type: "image/jpeg",
       });
     }
+  });
 
-    // Append menu items
-    menu.forEach((item, index) => {
-      formData.append(`menu[${index}][name]`, item.name);
-      if (item.image) {
-        compressImage(item.image).then((compressedImage) => {
-          formData.append(`menu[${index}][image]`, {
-            uri: compressedImage.uri,
-            name: `menu_image_${index}.jpg`,
-            type: "image/jpeg",
-          });
-        });
-      }
-    });
 
     try {
       const response = await axios.post(
-        "https://reservationadminrn-pdla.onrender.com/api/restaurants", // Replace with your backend URL
+        "http://192.168.0.104:3000/api/restaurants", //backend URL
         formData,
         {
           headers: {
@@ -256,10 +254,10 @@ const AddRestaurantScreen = ({ navigation }) => {
               const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
               });
-              if (!result.canceled) {
-                const compressedImage = await compressImage(result.assets[0].uri);
-                handleMenuItemChange(index, "image", compressedImage.uri);
-              }
+              // if (!result.canceled) {
+              //   const compressedImage = await compressImage(result.assets[0].uri);
+              //   handleMenuItemChange(index, "image", compressedImage.uri);
+              // }
             }}
           >
             <Text style={styles.buttonText}>Add Menu Item Image</Text>

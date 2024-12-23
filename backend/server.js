@@ -185,31 +185,53 @@ app.patch('/users/:id/block', async (req, res) => {
 // Restaurant Routes
 const restaurantRouter = express.Router();
 
-// Multer setup for handling file uploads
-const upload = multer({ dest: 'uploads/' });
 
-// Helper function to upload image to Firebase
-const uploadImageToFirebase = async (file) => {
+
+/// new firebase
+const uploadToFirebase = async (file) => {
   try {
-    const fileName = `restaurants/${Date.now()}_${file.originalname}`;
-    const fileRef = ref(storage, fileName);
+    const fileName = `${restaurants}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
+    const fileBuffer = file.buffer;
 
-    // Upload the file to Firebase Storage
-    const snapshot = await uploadBytes(fileRef, file.buffer, {
-      contentType: file.mimetype,
+    const fileRef = bucket.file(fileName);
+    await fileRef.save(fileBuffer, {
+      metadata: {
+        contentType: file.mimetype,
+      },
     });
 
-    // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+    // Make the file publicly accessible
+    await fileRef.makePublic();
+
+    // Get the public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    return publicUrl;
   } catch (error) {
-    console.error("Error uploading image to Firebase:", error);
-    throw new Error("Failed to upload image");
+    console.error('Error uploading to Firebase:', error);
+    throw error;
+  }
+};
+
+// Helper function to delete file from Firebase Storage
+const deleteFromFirebase = async (fileUrl) => {
+  try {
+    if (!fileUrl) return;
+
+    const fileName = fileUrl.split('/').pop();
+    const file = bucket.file(fileName);
+    
+    const exists = await file.exists();
+    if (exists[0]) {
+      await file.delete();
+    }
+  } catch (error) {
+    console.error('Error deleting from Firebase:', error);
+    throw error;
   }
 };
 
 // Endpoint to add restaurant
-restaurantRouter.post('/', upload.array('images'), async (req, res) => {
+restaurantRouter.post('/',  async (req, res) => {
   try {
     // Debugging: Check if files are being received
     console.log('Received files:', req.files);
@@ -233,39 +255,37 @@ restaurantRouter.post('/', upload.array('images'), async (req, res) => {
       menu,
     } = req.body;
 
-    // Upload images to Firebase
-    const imageUrls = await Promise.all(
-      req.files.map(async (file) => {
-        return await uploadImageToFirebase(file);
-      })
-    );
+ 
 
-    // Parse menu items
-    let menuWithImageUrls;
-    try {
-      // Check if menu is a string and parse it
-      if (typeof menu === 'string') {
-        menuWithImageUrls = JSON.parse(menu).map((item) => {
-          if (item.image) {
-            return { ...item, image: item.image }; // Assuming image is already a URL
-          }
-          return item;
-        });
-      } else if (Array.isArray(menu)) {
-        // If menu is already an array, use it directly
-        menuWithImageUrls = menu.map((item) => {
-          if (item.image) {
-            return { ...item, image: item.image }; // Assuming image is already a URL
-          }
-          return item;
-        });
-      } else {
-        throw new Error('Invalid menu format');
-      }
-    } catch (error) {
-      console.error('Error parsing menu:', error);
-      return res.status(400).json({ message: 'Invalid menu format' });
+    /////new
+     // Upload restaurant images to Firebase
+     const imageUrls = [];
+     if (req.files['images']) {
+       for (const file of req.files['images']) {
+         const imageUrl = await uploadToFirebase(file, 'restaurant-images');
+         imageUrls.push(imageUrl);
+       }
+     }
+
+     ////new menu
+      // Process menu items
+    const menuData = [];
+    const menuItems = JSON.parse(req.body.menu || '[]');
+    
+    for (let i = 0; i < menuItems.length; i++) {
+      const menuImage = req.files[`menu[${i}][image]`]?.[0];
+      const menuImageUrl = menuImage 
+        ? await uploadToFirebase(menuImage, 'menu-images')
+        : null;
+      
+      menuData.push({
+        name: menuItems[i].name,
+        image: menuImageUrl
+      });
     }
+
+
+    
 
     // Parse and validate availableTimeSlots
     let parsedAvailableTimeSlots;
@@ -305,7 +325,7 @@ restaurantRouter.post('/', upload.array('images'), async (req, res) => {
       cuisine,
       description,
       images: imageUrls,
-      menu: menuWithImageUrls,
+      menu: menuData,
       pricePerReservation: parseFloat(pricePerReservation),
       dressCode,
       amenities: JSON.parse(amenities),
@@ -403,20 +423,20 @@ restaurantRouter.get('/', async (req, res) => {
 // NEEEEEEEWWWWWWW
 
 
-const deleteImageFromFirebase = async (imageUrl) => {
-  try {
-    // Create a reference to the file to delete
-    const fileRef = ref(storage, imageUrl);
+// const deleteImageFromFirebase = async (imageUrl) => {
+//   try {
+//     // Create a reference to the file to delete
+//     const fileRef = ref(storage, imageUrl);
     
-    // Delete the file
-    await deleteObject(fileRef);
+//     // Delete the file
+//     await deleteObject(fileRef);
     
-    return true;
-  } catch (error) {
-    console.error('Error deleting from Firebase:', error);
-    throw error;
-  }
-};
+//     return true;
+//   } catch (error) {
+//     console.error('Error deleting from Firebase:', error);
+//     throw error;
+//   }
+// };
 
 
 
@@ -436,19 +456,54 @@ restaurantRouter.get('/:id', async (req, res) => {
 
 ////// update
 // PUT endpoint for updating restaurant
-restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
+restaurantRouter.put('/:id', async (req, res) => {
   try {
-    const restaurant = await Restaurant.findById(req.params.id);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+    const restaurantData = { ...req.body };
+    const oldRestaurant = await Restaurant.findById(req.params.id);
+    
+    if (!oldRestaurant) {
+      return res.status(404).json({ error: 'Restaurant not found' });
     }
 
-    // Upload new images if any
-    let newImageUrls = [];
-    if (req.files && req.files.length > 0) {
-      newImageUrls = await Promise.all(
-        req.files.map(file => uploadImageToFirebase(file))
-      );
+    // Handle new restaurant images
+    if (req.files['images']) {
+      // Delete old images from Firebase
+      for (const imageUrl of oldRestaurant.images) {
+        await deleteFromFirebase(imageUrl);
+      }
+
+      // Upload new images
+      const imageUrls = [];
+      for (const file of req.files['images']) {
+        const imageUrl = await uploadToFirebase(file, 'restaurant-images');
+        imageUrls.push(imageUrl);
+      }
+      restaurantData.images = imageUrls;
+    }
+
+    // Handle menu updates
+    if (req.body.menu) {
+      const menuItems = JSON.parse(req.body.menu);
+      const menuData = [];
+      
+      for (let i = 0; i < menuItems.length; i++) {
+        const menuImage = req.files[`menu[${i}][image]`]?.[0];
+        let menuImageUrl = menuItems[i].image;
+
+        if (menuImage) {
+          // Delete old menu image if it exists
+          if (menuImageUrl) {
+            await deleteFromFirebase(menuImageUrl);
+          }
+          menuImageUrl = await uploadToFirebase(menuImage, 'menu-images');
+        }
+
+        menuData.push({
+          name: menuItems[i].name,
+          image: menuImageUrl
+        });
+      }
+      restaurantData.menu = menuData;
     }
 
     const {
@@ -462,7 +517,7 @@ restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
       amenities,
       location,
       availableTimeSlots,
-      menu,
+      menuImage,
     } = req.body;
 
     // Parse all fields that should be objects/arrays
@@ -475,21 +530,21 @@ restaurantRouter.put('/:id', upload.array('images'), async (req, res) => {
       dressCode,
     };
 
-    // Parse menu items
-    try {
-      if (menu) {
-        parsedData.menu = typeof menu === 'string' ? JSON.parse(menu) : menu;
-        parsedData.menu = parsedData.menu.map((item) => {
-          if (item.image) {
-            return { ...item, image: item.image }; // Keep existing image URL
-          }
-          return item;
-        });
-      }
-    } catch (error) {
-      console.error('Error parsing menu:', error);
-      return res.status(400).json({ message: 'Invalid menu format' });
-    }
+    // // Parse menu items
+    // try {
+    //   if (menu) {
+    //     parsedData.menu = typeof menu === 'string' ? JSON.parse(menu) : menu;
+    //     parsedData.menu = parsedData.menu.map((item) => {
+    //       if (item.image) {
+    //         return { ...item, image: item.image }; // Keep existing image URL
+    //       }
+    //       return item;
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error('Error parsing menu:', error);
+    //   return res.status(400).json({ message: 'Invalid menu format' });
+    // }
 
     // Parse and validate availableTimeSlots
     try {
@@ -569,11 +624,22 @@ restaurantRouter.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // Delete images from Firebase Storage
-    await Promise.all(
-      restaurant.images.map(imageUrl => deleteImageFromFirebase(imageUrl))
-    );
+    // // Delete images from Firebase Storage
+    // await Promise.all(
+    //   restaurant.images.map(imageUrl => deleteImageFromFirebase(imageUrl))
+    // );
 
+    // Delete all associated images from Firebase
+    for (const imageUrl of restaurant.images) {
+      await deleteFromFirebase(imageUrl);
+    }
+
+    // Delete menu images
+    for (const menuItem of restaurant.menu) {
+      if (menuItem.image) {
+        await deleteFromFirebase(menuItem.image);
+      }
+    }
     // Delete restaurant document
     await Restaurant.findByIdAndDelete(req.params.id);
 
