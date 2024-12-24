@@ -35,7 +35,8 @@ app.use(cors({
   origin: [
     'exp://192.168.0.104:8081', 
     'http://192.168.0.104:8081', 
-    'http://192.168.0.104:8081'
+    'http://192.168.0.104:8081',
+    'https://restaurant-reservations-app.onrender.com'
   ],
   credentials: true
 }));
