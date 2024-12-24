@@ -188,24 +188,22 @@ const restaurantRouter = express.Router();
 
 
 /// new firebase
-const uploadToFirebase = async (file) => {
+const uploadToFirebase = async (file, folder) => {
   try {
-    const fileName = `${restaurants}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
-    const fileBuffer = file.buffer;
+    const fileName = `${folder}/${Date.now()}-${file.originalname.replace(/\s/g, '_')}`;
+    const storageRef = ref(storage, fileName);
+    
+    // Create file metadata including the content type
+    const metadata = {
+      contentType: file.mimetype,
+    };
 
-    const fileRef = bucket.file(fileName);
-    await fileRef.save(fileBuffer, {
-      metadata: {
-        contentType: file.mimetype,
-      },
-    });
-
-    // Make the file publicly accessible
-    await fileRef.makePublic();
-
-    // Get the public URL
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-    return publicUrl;
+    // Upload the file
+    await uploadBytes(storageRef, file.buffer, metadata);
+    
+    // Get the download URL
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
   } catch (error) {
     console.error('Error uploading to Firebase:', error);
     throw error;
@@ -216,19 +214,19 @@ const uploadToFirebase = async (file) => {
 const deleteFromFirebase = async (fileUrl) => {
   try {
     if (!fileUrl) return;
-
-    const fileName = fileUrl.split('/').pop();
-    const file = bucket.file(fileName);
     
-    const exists = await file.exists();
-    if (exists[0]) {
-      await file.delete();
-    }
+    // Get the file path from the URL
+    const fileRef = ref(storage, fileUrl);
+    await deleteObject(fileRef);
   } catch (error) {
     console.error('Error deleting from Firebase:', error);
-    throw error;
+    // Don't throw error if file doesn't exist
+    if (error.code !== 'storage/object-not-found') {
+      throw error;
+    }
   }
 };
+
 
 // Endpoint to add restaurant
 restaurantRouter.post('/',  async (req, res) => {
@@ -269,20 +267,20 @@ restaurantRouter.post('/',  async (req, res) => {
 
      ////new menu
       // Process menu items
-    const menuData = [];
-    const menuItems = JSON.parse(req.body.menu || '[]');
-    
-    for (let i = 0; i < menuItems.length; i++) {
-      const menuImage = req.files[`menu[${i}][image]`]?.[0];
-      const menuImageUrl = menuImage 
-        ? await uploadToFirebase(menuImage, 'menu-images')
-        : null;
+      const menuData = [];
+      const menuItems = JSON.parse(req.body.menu || '[]');
       
-      menuData.push({
-        name: menuItems[i].name,
-        image: menuImageUrl
-      });
-    }
+      for (let i = 0; i < menuItems.length; i++) {
+        const menuImage = req.files[`menu[${i}][image]`]?.[0];
+        const menuImageUrl = menuImage 
+          ? await uploadToFirebase(menuImage, 'menu-images')
+          : null;
+        
+        menuData.push({
+          name: menuItems[i].name,
+          image: menuImageUrl
+        });
+      }
 
 
     

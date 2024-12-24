@@ -27,34 +27,49 @@ const AddRestaurantScreen = ({ navigation }) => {
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
 
   // Function to compress an image
-  // const compressImage = async (uri) => {
-  //   const result = await ImageManipulator.manipulateAsync(
-  //     uri,
-  //     [{ resize: { width: 800 } }], // Resize the image to a maximum width of 800px
-  //     { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Compress the image to 70% quality
-  //   );
-  //   return result;
-  // };
-
+  const compressImage = async (uri) => {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }], // Resize to 800px width
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return result;
+  };
+  
+  // For restaurant images
   const handleAddImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
-
-    // if (!result.canceled) {
-    //   const compressedImage = await compressImage(result.assets[0].uri);
-    //   setImages([...images, compressedImage.uri]);
-    // }
+  
+    if (!result.canceled) {
+      const compressedImage = await compressImage(result.assets[0].uri);
+      setImages([...images, compressedImage.uri]);
+    }
   };
-
-  const handleAddMenuItem = () => {
-    setMenu([...menu, { name: "", image: null }]);
+  
+  // Add this function for menu items
+  const handleMenuImageAdd = async (index) => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    });
+  
+    if (!result.canceled) {
+      const compressedImage = await compressImage(result.assets[0].uri);
+      const updatedMenu = [...menu];
+      updatedMenu[index].image = compressedImage.uri;
+      setMenu(updatedMenu);
+    }
   };
 
   const handleMenuItemChange = (index, key, value) => {
     const updatedMenu = [...menu];
     updatedMenu[index][key] = value;
     setMenu(updatedMenu);
+  };
+
+  const handleAddMenuItem = () => {
+    setMenu([...menu, { name: "", image: "" }]);
   };
 
   const handleAddTimeSlot = () => {
@@ -105,27 +120,32 @@ const AddRestaurantScreen = ({ navigation }) => {
     formData.append("availableTimeSlots", JSON.stringify(availableTimeSlots));
 
     // Append restaurant images directly
-  for (let i = 0; i < images.length; i++) {
-    const imageUri = images[i];
-    formData.append("images", {
-      uri: imageUri,
-      name: `restaurant_image_${i}.jpg`,
-      type: "image/jpeg",
-    });
-  }
-
-  // Append menu items with images
-  menu.forEach((item, index) => {
-    formData.append(`menu[${index}][name]`, item.name);
-    if (item.image) {
-      formData.append(`menu[${index}][image]`, {
-        uri: item.image,
-        name: `menu_image_${index}.jpg`,
-        type: "image/jpeg",
+    // For restaurant images
+    for (let i = 0; i < images.length; i++) {
+      const imageUri = images[i];
+      const filename = imageUri.split('/').pop();
+      // No need to compress here since images are already compressed in handleAddImage
+      formData.append("images", {
+        uri: Platform.OS === 'android' ? imageUri : imageUri.replace('file://', ''),
+        name: filename || `restaurant_image_${i}.jpg`,
+        type: 'image/jpeg',
       });
     }
-  });
-
+  
+    // Append menu items with images
+    for (let i = 0; i < menu.length; i++) {
+      const item = menu[i];
+      formData.append(`menu[${i}][name]`, item.name);
+      
+      if (item.image) {
+        const filename = item.image.split('/').pop();
+        formData.append(`menu[${i}][image]`, {
+          uri: Platform.OS === 'android' ? item.image : item.image.replace('file://', ''),
+          name: filename || `menu_image_${i}.jpg`,
+          type: 'image/jpeg',
+        });
+      }
+    }
 
     try {
       const response = await axios.post(
@@ -134,6 +154,10 @@ const AddRestaurantScreen = ({ navigation }) => {
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            Accept: "application/json",
+          },
+          transformRequest: (data, headers) => {
+            return formData; // Prevent axios from trying to transform FormData
           },
         }
       );
@@ -250,15 +274,7 @@ const AddRestaurantScreen = ({ navigation }) => {
           />
           <TouchableOpacity
             style={styles.button}
-            onPress={async () => {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              });
-              // if (!result.canceled) {
-              //   const compressedImage = await compressImage(result.assets[0].uri);
-              //   handleMenuItemChange(index, "image", compressedImage.uri);
-              // }
-            }}
+            onPress={() => handleMenuImageAdd(index)}
           >
             <Text style={styles.buttonText}>Add Menu Item Image</Text>
           </TouchableOpacity>
