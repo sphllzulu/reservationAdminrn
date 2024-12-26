@@ -15,44 +15,7 @@ import axios from "axios";
 import AddRestaurantForm from "../components/AddRestaurantForm";
 import { Ionicons } from "@expo/vector-icons";
 import LocationMap from "../components/LocationMarker";
-import {ref, getDownloadURL } from "firebase/storage";
-import {storage} from '../firebase'
 
-// firebase image
-// New component to handle Firebase image loading
-const FirebaseImage = ({ storagePath, style }) => {
-  const [imageUrl, setImageUrl] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadImage = async () => {
-      try {
-        
-        const imageRef = ref(storage, storagePath);
-        const url = await getDownloadURL(imageRef);
-        setImageUrl(url);
-      } catch (error) {
-        console.error("Error loading image:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (storagePath) {
-      loadImage();
-    }
-  }, [storagePath]);
-
-  if (loading) {
-    return <View style={[style, { backgroundColor: "#E1E1E1" }]} />;
-  }
-
-  return imageUrl ? (
-    <Image source={{ uri: imageUrl }} style={style} />
-  ) : (
-    <View style={[style, { backgroundColor: "#E1E1E1" }]} />
-  );
-};
 
 // Star Rating Component
 const StarRating = ({ rating }) => {
@@ -103,7 +66,10 @@ const RestaurantDetailsModal = ({
                 horizontal
                 data={restaurant.images}
                 renderItem={({ item }) => (
-                  <FirebaseImage storagePath={item} style={styles.modalImage} />
+                  <Image
+                          source={{ uri: item.image }}
+                          style={styles.menuItemImage}
+                        />
                 )}
                 keyExtractor={(item, index) => index.toString()}
               />
@@ -338,10 +304,10 @@ const RestaurantManagement = () => {
       }}
     >
       <View style={styles.restaurantItemContent}>
-        <FirebaseImage
-          storagePath={item.images[0]}
-          style={styles.restaurantThumbnail}
-        />
+      <Image
+                          source={{ uri: item.image }}
+                          style={styles.menuItemImage}
+                        />
         <View style={styles.restaurantDetails}>
           <Text style={styles.restaurantName}>{item.name}</Text>
           <Text>{item.cuisine}</Text>
