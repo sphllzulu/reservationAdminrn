@@ -1,5 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, Alert, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  Button,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Clipboard, // Import Clipboard
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; 
 import axios from 'axios';
 
 const UserScreen = () => {
@@ -12,7 +25,7 @@ const UserScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('https://reservationadminrn-pdla.onrender.com/users');
+      const response = await axios.get(`http://192.168.18.15:3000/users`);
       setUsers(response.data);
     } catch (err) {
       setError('Failed to fetch users');
@@ -32,8 +45,8 @@ const UserScreen = () => {
           text: 'Delete',
           onPress: async () => {
             try {
-              await axios.delete(`https://reservationadminrn-pdla.onrender.com/users/${id}`);
-              setUsers(users.filter((user) => user._id !== id)); // Update the UI
+              await axios.delete(`http://192.168.18.15:3000/users/${id}`);
+              setUsers(users.filter((user) => user._id !== id)); 
             } catch (err) {
               Alert.alert('Failed to delete the user');
             }
@@ -46,13 +59,19 @@ const UserScreen = () => {
   // Block a user by ID
   const blockUser = async (id) => {
     try {
-      const response = await axios.patch(`https://reservationadminrn-pdla.onrender.com/users/${id}/block`);
+      const response = await axios.patch(`http://192.168.18.15:3000/users/${id}/block`);
       setUsers(
-        users.map((user) => (user._id === id ? response.data.user : user)) // Update the UI
+        users.map((user) => (user._id === id ? response.data.user : user)) 
       );
     } catch (err) {
       Alert.alert('Failed to block the user');
     }
+  };
+
+  // Handle copying the user ID
+  const handleCopyID = (id) => {
+    Clipboard.setString(id); // Copy the ID to the clipboard
+    Alert.alert('Copied!', 'User ID has been copied to clipboard.'); // Show a confirmation message
   };
 
   // Fetch users on component mount
@@ -71,6 +90,14 @@ const UserScreen = () => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <View style={styles.userCard}>
+            <View style={styles.idContainer}>
+              <Text style={styles.userText}>
+                UserID: <Text style={styles.userValue} selectable={true}>{item._id}</Text>
+              </Text>
+              <TouchableOpacity onPress={() => handleCopyID(item._id)}>
+                <Ionicons name="copy" size={16} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.userText}>Email: <Text style={styles.userValue}>{item.email}</Text></Text>
             <Text style={styles.userText}>First Name: <Text style={styles.userValue}>{item.firstName}</Text></Text>
             <Text style={styles.userText}>Last Name: <Text style={styles.userValue}>{item.lastName}</Text></Text>
@@ -105,14 +132,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f1f1f1', // Light grey background for a modern feel
+    backgroundColor: '#f1f1f1', 
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 20,
+    margin: 20,
     paddingTop: 10,
   },
   userCard: {
@@ -137,6 +164,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  idContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4, 
+  },
   buttons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -147,6 +179,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
 });
-
 
 export default UserScreen;
