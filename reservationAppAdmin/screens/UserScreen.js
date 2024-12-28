@@ -10,7 +10,7 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  Clipboard, // Import Clipboard
+  Clipboard, 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import axios from 'axios';
@@ -25,7 +25,7 @@ const UserScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`http://192.168.18.15:3000/users`);
+      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/users`);
       setUsers(response.data);
     } catch (err) {
       setError('Failed to fetch users');
@@ -45,7 +45,7 @@ const UserScreen = () => {
           text: 'Delete',
           onPress: async () => {
             try {
-              await axios.delete(`http://192.168.18.15:3000/users/${id}`);
+              await axios.delete(`${process.env.EXPO_PUBLIC_API_URL}/users/${id}`);
               setUsers(users.filter((user) => user._id !== id)); 
             } catch (err) {
               Alert.alert('Failed to delete the user');
@@ -59,7 +59,7 @@ const UserScreen = () => {
   // Block a user by ID
   const blockUser = async (id) => {
     try {
-      const response = await axios.patch(`http://192.168.18.15:3000/users/${id}/block`);
+      const response = await axios.patch(`${process.env.EXPO_PUBLIC_API_URL}/users/${id}/block`);
       setUsers(
         users.map((user) => (user._id === id ? response.data.user : user)) 
       );
@@ -70,7 +70,7 @@ const UserScreen = () => {
 
   // Handle copying the user ID
   const handleCopyID = (id) => {
-    Clipboard.setString(id); // Copy the ID to the clipboard
+    Clipboard.setString(id);
     Alert.alert('Copied!', 'User ID has been copied to clipboard.'); // Show a confirmation message
   };
 

@@ -39,7 +39,7 @@ const ProfileScreen = ({ navigation }) => {
     try {
       // Call logout endpoint
       await axios.post(
-        'http://192.168.18.15:3000/signout', 
+        '${process.env.EXPO_PUBLIC_API_URL}/signout', 
         {}, 
         { withCredentials: true }
       );

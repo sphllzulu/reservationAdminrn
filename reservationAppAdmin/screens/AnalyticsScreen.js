@@ -12,7 +12,7 @@ const AnalyticsScreen = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch(`http://192.168.18.15:3000/reservation`);
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/reservation`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }

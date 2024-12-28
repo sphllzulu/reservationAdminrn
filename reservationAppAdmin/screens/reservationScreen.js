@@ -24,7 +24,7 @@ const ReservationManager = () => {
 
   const fetchReservations = async () => {
     try {
-      const response = await fetch(`http://192.168.18.15:3000/reservations`);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/reservations`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -62,7 +62,7 @@ const ReservationManager = () => {
   
     try {
       const endpoint = status === 'Confirmed' ? 'confirm' : 'cancel';
-      const response = await fetch(`http://192.168.18.15:3000/reservations/${reservationId}/${endpoint}`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/reservations/${reservationId}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

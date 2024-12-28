@@ -273,7 +273,7 @@ const RestaurantManagement = () => {
   const fetchRestaurants = async () => {
     try {
       const response = await axios.get(
-        "http://192.168.18.15:3000/api/restaurants"
+        `${process.env.EXPO_PUBLIC_API_URL}/api/restaurants`
       );
       setRestaurants(response.data);
     } catch (error) {
@@ -284,7 +284,7 @@ const RestaurantManagement = () => {
   const handleDeleteRestaurant = async (restaurantId) => {
     try {
       await axios.delete(
-        `http://192.168.18.15:3000/api/restaurants/${restaurantId}`
+        `${process.env.EXPO_PUBLIC_API_URL}/api/restaurants/${restaurantId}`
       );
       fetchRestaurants();
       setIsDetailsModalVisible(false);
@@ -330,7 +330,7 @@ const RestaurantManagement = () => {
         <View style={styles.restaurantItemContent}>
         {item.photos && item.photos.length > 0 && (
           <Image
-            source={{ uri: item.photos[0] }} // Use the first photo from the photos array
+            source={{ uri: item.photos[0] }} 
             style={styles.restaurantThumbnail}
           />
         )}

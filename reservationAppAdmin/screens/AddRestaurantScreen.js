@@ -103,7 +103,7 @@ const AddRestaurantScreen = ({ navigation }) => {
       console.log('Sending data:', restaurantData); // For debugging
   
       const response = await axios.post(
-        `http://192.168.18.15:3000/api/restaurants`,
+        `${process.env.EXPO_PUBLIC_API_URL}/api/restaurants`,
         restaurantData, 
         {
           headers: {
