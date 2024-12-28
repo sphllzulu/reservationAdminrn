@@ -1,21 +1,22 @@
+
+
 import mongoose from "mongoose";
 
-// Define schemas
 const ReservationSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    // ref: 'User', // Reference to the User collection
+    ref: "User",
     required: true,
   },
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
-    // ref: 'Restaurant', // Reference to the Restaurant collection
+    ref: "Restaurant",
     required: true,
   },
   partySize: {
     type: Number,
     required: true,
-    min: 1, // Ensure at least 1 person
+    min: 1,
   },
   date: {
     type: Date,
@@ -24,14 +25,27 @@ const ReservationSchema = new mongoose.Schema({
   time: {
     type: String,
     required: true,
-    // validate: {
-    //   validator: function (v) {
-    //     return /^\d{2}:\d{2}$/.test(v); // Validate time format as HH:MM
-    //   },
-    //   message: (props) => `${props.value} is not a valid time format!`,
-    // },
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+  },
+  customerName: {
+    type: String,
+    required: true,
+  },
+  emailAddress: {
+    type: String,
+    required: true,
+    match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  },
+  paymentStatus: {
+    type: String,
+    required: true,
+    enum: ["Pending", "Confirmed", "Cancelled"],
+    default: "Pending",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
-// Define models
 export default mongoose.model("Reservation", ReservationSchema);
