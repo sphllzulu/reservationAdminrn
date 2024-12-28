@@ -39,7 +39,7 @@ const ProfileScreen = ({ navigation }) => {
     try {
       // Call logout endpoint
       await axios.post(
-        'https://reservationadminrn-pdla.onrender.com/signout', 
+        'http://192.168.18.15:3000/signout', 
         {}, 
         { withCredentials: true }
       );

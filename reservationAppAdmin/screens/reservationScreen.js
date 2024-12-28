@@ -8,19 +8,23 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-
+import * as MailComposer from 'expo-mail-composer';
 
 const ReservationManager = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
+
 
   const fetchReservations = async () => {
     try {
-      const response = await fetch(`https://reservationadminrn-pdla.onrender.com/reservations`);
+      const response = await fetch(`http://192.168.18.15:3000/reservations`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -47,51 +51,60 @@ const ReservationManager = () => {
     fetchReservations();
   }, []);
 
-  const handleApprove = async (reservationId) => {
-    try {
-      // API call would go here
-      // await approveReservation(reservationId);
-      
-      setReservations(reservations.map(res => 
-        res._id === reservationId 
-          ? { ...res, status: 'approved' }
-          : res
-      ));
-      
-      setNotification({
-        type: 'success',
-        message: 'Reservation approved successfully'
-      });
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to approve reservation'
-      });
-    }
+  const showNotification = (type, message) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleCancel = async (reservationId) => {
+  const handleStatusUpdate = async (reservationId, status, userEmail) => {
+    if (updatingId) return;
+    setUpdatingId(reservationId);
+  
     try {
-      // API call would go here
-      // await cancelReservation(reservationId);
-      
-      setReservations(reservations.map(res => 
-        res._id === reservationId 
-          ? { ...res, status: 'cancelled' }
-          : res
-      ));
-      
-      setNotification({
-        type: 'success',
-        message: 'Reservation cancelled successfully'
+      const endpoint = status === 'Confirmed' ? 'confirm' : 'cancel';
+      const response = await fetch(`http://192.168.18.15:3000/reservations/${reservationId}/${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to ${status.toLowerCase()} reservation`);
+      }
+  
+      const updatedReservation = await response.json();
+      
+      // Update local state with the response from the server
+      setReservations(prevReservations =>
+        prevReservations.map(res =>
+          res._id === reservationId
+            ? { ...res, paymentStatus: status } // Changed from status to paymentStatus
+            : res
+        )
+      );
+  
+      // Send email notification
+      try {
+        await MailComposer.composeAsync({
+          recipients: [userEmail],
+          subject: `Reservation ${status}`,
+          body: `Your reservation has been ${status.toLowerCase()}.`,
+        });
+      } catch (emailError) {
+        console.error('Failed to send email:', emailError);
+      }
+  
+      showNotification('success', `Reservation ${status.toLowerCase()} successfully`);
     } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to cancel reservation'
-      });
+      console.error(`Error ${status.toLowerCase()} reservation:`, error);
+      showNotification('error', error.message);
+    } finally {
+      setUpdatingId(null);
     }
   };
+  
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
@@ -99,12 +112,12 @@ const ReservationManager = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved':
+      case 'Confirmed':
         return {
           bg: '#dcfce7',
           text: '#166534'
         };
-      case 'cancelled':
+      case 'Cancelled':
         return {
           bg: '#fee2e2',
           text: '#991b1b'
@@ -117,15 +130,23 @@ const ReservationManager = () => {
     }
   };
 
-  const getDisplayName = (object) => {
-    if (!object) return 'N/A';
-    return object.name || 'N/A';
-  };
-
   const formatStatus = (status) => {
     if (!status) return 'Pending';
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
+
+  const handleSearch = (searchQuery) => {
+    setSearchQuery(searchQuery);
+  };
+
+  const filteredReservations = reservations.filter(res => {
+    const restaurantId = res.restaurantId ? (typeof res.restaurantId === 'object' ? res.restaurantId._id : res.restaurantId) : null;
+    return (
+      res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      res.emailAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (restaurantId && restaurantId.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  });
 
   if (loading) {
     return (
@@ -140,6 +161,12 @@ const ReservationManager = () => {
       <View style={styles.header}>
         <Text style={styles.title}>Reservation Management</Text>
         <Text style={styles.description}>View and manage restaurant reservations</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Customer Name or Email or Restaurant ID"
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
       </View>
 
       {notification && (
@@ -154,94 +181,72 @@ const ReservationManager = () => {
         </View>
       )}
 
-      <ScrollView 
-        style={styles.tableContainer}
+      <ScrollView
+        style={styles.cardContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.tableHeader}>
-          <Text style={[styles.headerCell, styles.restaurantCell]}>Restaurant</Text>
-          <Text style={[styles.headerCell, styles.customerCell]}>Customer</Text>
-          <Text style={[styles.headerCell, styles.dateTimeCell]}>Date & Time</Text>
-          <Text style={[styles.headerCell, styles.statusCell]}>Status</Text>
-          <Text style={[styles.headerCell, styles.actionsCell]}>Actions</Text>
-        </View>
-
-        {reservations.map((reservation) => (
-          <View key={reservation._id} style={styles.tableRow}>
-            <View style={[styles.cell, styles.restaurantCell]}>
-              <Text style={styles.cellText}>
-                {getDisplayName(reservation.restaurantId)}
-              </Text>
-            </View>
-            
-            <View style={[styles.cell, styles.customerCell]}>
-              <Text style={styles.cellText}>
-                {getDisplayName(reservation.userId)}
-              </Text>
-            </View>
-            
-            <View style={[styles.cell, styles.dateTimeCell]}>
-              <View style={styles.dateTimeInfo}>
-                <View style={styles.dateContainer}>
-                  <FontAwesome5 name="calendar" size={16} color="#666" />
-                  <Text style={styles.cellText}>
-                    {reservation.date ? formatDate(reservation.date) : 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.timeContainer}>
-                  <FontAwesome5 name="clock" size={16} color="#666" />
-                  <Text style={styles.cellText}>
-                    {reservation.time || 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.partySizeContainer}>
-                  <FontAwesome5 name="users" size={16} color="#666" />
-                  <Text style={styles.cellText}>
-                    {reservation.partySize || 'N/A'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            
-            <View style={[styles.cell, styles.statusCell]}>
+        {filteredReservations.map((reservation) => (
+          <View key={reservation._id} style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Reservation Details</Text>
               <View style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(reservation.status).bg }
+                { backgroundColor: getStatusColor(reservation.paymentStatus).bg }
               ]}>
                 <Text style={[
                   styles.statusText,
-                  { color: getStatusColor(reservation.status).text }
+                  { color: getStatusColor(reservation.paymentStatus).text }
                 ]}>
-                  {formatStatus(reservation.status)}
+                  {formatStatus(reservation.paymentStatus)}
                 </Text>
               </View>
             </View>
 
-            <View style={[styles.cell, styles.actionsCell]}>
-              {(!reservation.status || reservation.status === 'pending') && (
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.approveButton]}
-                    onPress={() => handleApprove(reservation._id)}
-                  >
-                    <Text style={styles.approveButtonText}>Approve</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[styles.button, styles.cancelButton]}
-                    onPress={() => handleCancel(reservation._id)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardText}>
+                <Text style={styles.label}>Customer Name:</Text> {reservation.customerName}
+              </Text>
+              <Text style={styles.cardText}>
+                <Text style={styles.label}>Email:</Text> {reservation.emailAddress}
+              </Text>
+              <Text style={styles.cardText}>
+  <Text style={styles.label}>Restaurant ID:</Text> {reservation.restaurantId ? (typeof reservation.restaurantId === 'object' ? reservation.restaurantId._id : reservation.restaurantId) : 'N/A'}
+</Text>
+              <Text style={styles.cardText}>
+                <Text style={styles.label}>Date:</Text> {formatDate(reservation.date)}
+              </Text>
+              <Text style={styles.cardText}>
+                <Text style={styles.label}>Time:</Text> {reservation.time}
+              </Text>
+              <Text style={styles.cardText}>
+                <Text style={styles.label}>Party Size:</Text> {reservation.partySize}
+              </Text>
+            </View>
+
+            <View style={styles.cardFooter}>
+              {reservation.paymentStatus !== 'Confirmed' && (
+                <TouchableOpacity
+                  style={[styles.button, styles.confirmButton]}
+                  onPress={() => handleStatusUpdate(reservation._id, 'Confirmed', reservation.emailAddress)}
+                >
+                  <Text style={styles.buttonText}>Confirm</Text>
+                </TouchableOpacity>
+              )}
+              {reservation.paymentStatus !== 'Cancelled' && (
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => handleStatusUpdate(reservation._id, 'Cancelled', reservation.emailAddress)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
         ))}
 
-        {reservations.length === 0 && (
+        {filteredReservations.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>No reservations found</Text>
           </View>
@@ -270,11 +275,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111',
+    margin:17,
   },
   description: {
     fontSize: 16,
     color: '#666',
     marginTop: 4,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginTop: 10,
   },
   notification: {
     padding: 16,
@@ -289,65 +303,26 @@ const styles = StyleSheet.create({
   notificationMessage: {
     fontSize: 14,
   },
-  tableContainer: {
+  cardContainer: {
     flex: 1,
   },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+  card: {
     backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
-  headerCell: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  tableRow: {
+  cardHeader: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  cell: {
-    justifyContent: 'center',
-  },
-  restaurantCell: {
-    flex: 2,
-  },
-  customerCell: {
-    flex: 2,
-  },
-  dateTimeCell: {
-    flex: 3,
-  },
-  dateTimeInfo: {
-    gap: 4,
-  },
-  dateContainer: {
-    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 12,
   },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  partySizeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusCell: {
-    flex: 1.5,
-  },
-  actionsCell: {
-    flex: 2,
-  },
-  cellText: {
-    fontSize: 14,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#111',
   },
   statusBadge: {
@@ -359,8 +334,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  actionButtons: {
+  cardBody: {
+    marginBottom: 12,
+  },
+  cardText: {
+    fontSize: 14,
+    color: '#111',
+    marginBottom: 8,
+  },
+  label: {
+    fontWeight: 'bold',
+  },
+  cardFooter: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 8,
   },
   button: {
@@ -369,21 +356,15 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
   },
-  approveButton: {
+  confirmButton: {
     backgroundColor: '#dcfce7',
     borderColor: '#166534',
-  },
-  approveButtonText: {
-    color: '#166534',
-    fontSize: 12,
-    fontWeight: '500',
   },
   cancelButton: {
     backgroundColor: '#fee2e2',
     borderColor: '#991b1b',
   },
-  cancelButtonText: {
-    color: '#991b1b',
+  buttonText: {
     fontSize: 12,
     fontWeight: '500',
   },

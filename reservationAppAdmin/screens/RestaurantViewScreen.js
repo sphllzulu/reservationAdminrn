@@ -1,425 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, Button, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as Clipboard from 'expo-clipboard';
 
-const RestaurantViewScreen = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-//   const { id } = route.params;
+const CloudinaryUploadPage = () => {
+  const [image, setImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState(null);
 
-  const [restaurant, setRestaurant] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState(null);
-  const [newImages, setNewImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Your Cloudinary credentials
 
-  useEffect(() => {
-    fetchRestaurant();
-  }, []);
-
-  const fetchRestaurant = async () => {
-    try {
-      const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants`);
-      const data = await response.json();
-      setRestaurant(data);
-      setEditedData(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching restaurant:', error);
-      setLoading(false);
-      Alert.alert('Error', 'Failed to load restaurant details');
-    }
-  };
+  const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/dbicet7rg/image/upload`;
+  const UPLOAD_PRESET = 'images'; 
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant permission to access your photos');
+      alert('Sorry, we need camera roll permissions to make this work!');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
+    let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
     });
 
-    if (!result.canceled && result.assets) {
-      setNewImages([...newImages, ...result.assets]);
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
     }
   };
 
-  const handleSave = async () => {
+  const uploadImage = async () => {
+    if (!image) {
+      alert('Please pick an image first!');
+      return;
+    }
+
+    setUploading(true);
+
     try {
-      setLoading(true);
+      // Compress the image
+      const compressedImage = await ImageManipulator.manipulateAsync(
+        image,
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // Create form data
       const formData = new FormData();
-
-      // Append text fields
-      Object.keys(editedData).forEach(key => {
-        if (key !== 'images' && key !== '_id') {
-          if (typeof editedData[key] === 'object') {
-            formData.append(key, JSON.stringify(editedData[key]));
-          } else {
-            formData.append(key, editedData[key]);
-          }
-        }
+      formData.append('file', {
+        uri: compressedImage.uri,
+        type: 'image/jpeg',
+        name: 'upload.jpg',
       });
+      formData.append('upload_preset', UPLOAD_PRESET);
 
-      // Append new images
-      newImages.forEach((image, index) => {
-        const imageUri = Platform.OS === 'ios' ? image.uri.replace('file://', '') : image.uri;
-        formData.append('images', {
-          uri: imageUri,
-          type: 'image/jpeg',
-          name: `image_${index}.jpg`,
-        });
-      });
-
-      const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants/${id}`, {
-        method: 'PUT',
+      // Upload to Cloudinary
+      const response = await fetch(CLOUDINARY_URL, {
+        method: 'POST',
         body: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (response.ok) {
-        setIsEditing(false);
-        fetchRestaurant();
-        Alert.alert('Success', 'Restaurant updated successfully');
+      const data = await response.json();
+
+      if (data.secure_url) {
+        setImageUrl(data.secure_url);
+      } else {
+        throw new Error('Upload failed');
       }
     } catch (error) {
-      console.error('Error updating restaurant:', error);
-      Alert.alert('Error', 'Failed to update restaurant');
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this restaurant? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const response = await fetch(`https://reservationadminrn-pdla.onrender.com/api/restaurants/${id}`, {
-                method: 'DELETE',
-              });
-
-              if (response.ok) {
-                navigation.goBack();
-              }
-            } catch (error) {
-              console.error('Error deleting restaurant:', error);
-              Alert.alert('Error', 'Failed to delete restaurant');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  const copyToClipboard = async () => {
+    if (imageUrl) {
+      await Clipboard.setStringAsync(imageUrl);
+      Alert.alert('Copied!', 'The URL has been copied to your clipboard.');
+    }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  if (!restaurant) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text>Restaurant not found</Text>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{restaurant.name}</Text>
-          <View style={styles.headerButtons}>
-            {!isEditing ? (
-              <>
-                <TouchableOpacity
-                  style={[styles.button, styles.editButton]}
-                  onPress={() => setIsEditing(true)}
-                >
-                  <Icon name="pencil" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.deleteButton]}
-                  onPress={handleDelete}
-                >
-                  <Icon name="delete" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>Delete</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[styles.button, styles.saveButton]}
-                  onPress={handleSave}
-                >
-                  <Icon name="content-save" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={() => {
-                    setIsEditing(false);
-                    setEditedData(restaurant);
-                    setNewImages([]);
-                  }}
-                >
-                  <Icon name="close" size={20} color="#fff" />
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Image Uploader</Text>
+      <Text style={styles.instructions}>
+        1. Pick an image from your gallery{'\n'}
+        2. Upload it{'\n'}
+        3. Copy the hosted image URL
+      </Text>
 
-        {/* Image Gallery */}
-        <ScrollView
-          horizontal
-          style={styles.imageGallery}
-          showsHorizontalScrollIndicator={false}
-        >
-          {restaurant.images.map((image, index) => (
-            <Image
-              key={`existing_${index}`}
-              source={{ uri: image }}
-              style={styles.image}
-            />
-          ))}
-          {newImages.map((image, index) => (
-            <Image
-              key={`new_${index}`}
-              source={{ uri: image.uri }}
-              style={styles.image}
-            />
-          ))}
-        </ScrollView>
-
-        {isEditing && (
-          <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
-            <Icon name="image-plus" size={24} color="#0000ff" />
-            <Text style={styles.addImageText}>Add Images</Text>
+      <Button title="Pick an image" onPress={pickImage} />
+      {image && <Image source={{ uri: image }} style={styles.image} />}
+      {image && (
+        <Button
+          title={uploading ? 'Uploading...' : 'Upload Image'}
+          onPress={uploadImage}
+          disabled={uploading}
+        />
+      )}
+      {uploading && <ActivityIndicator size="large" color="#0000ff" />}
+      {imageUrl && (
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Hosted Image URL:</Text>
+          <TouchableOpacity onPress={copyToClipboard}>
+            <Text style={styles.link}>{imageUrl}</Text>
           </TouchableOpacity>
-        )}
-
-        {/* Restaurant Details Form */}
-        <View style={styles.detailsContainer}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Name</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editedData.name}
-                onChangeText={(text) =>
-                  setEditedData((prev) => ({ ...prev, name: text }))
-                }
-              />
-            ) : (
-              <Text style={styles.value}>{restaurant.name}</Text>
-            )}
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Cuisine</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editedData.cuisine}
-                onChangeText={(text) =>
-                  setEditedData((prev) => ({ ...prev, cuisine: text }))
-                }
-              />
-            ) : (
-              <Text style={styles.value}>{restaurant.cuisine}</Text>
-            )}
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Address</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editedData.address}
-                onChangeText={(text) =>
-                  setEditedData((prev) => ({ ...prev, address: text }))
-                }
-              />
-            ) : (
-              <Text style={styles.value}>{restaurant.address}</Text>
-            )}
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Phone</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editedData.phone}
-                onChangeText={(text) =>
-                  setEditedData((prev) => ({ ...prev, phone: text }))
-                }
-                keyboardType="phone-pad"
-              />
-            ) : (
-              <Text style={styles.value}>{restaurant.phone}</Text>
-            )}
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Description</Text>
-            {isEditing ? (
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={editedData.description}
-                onChangeText={(text) =>
-                  setEditedData((prev) => ({ ...prev, description: text }))
-                }
-                multiline
-                numberOfLines={4}
-              />
-            ) : (
-              <Text style={styles.value}>{restaurant.description}</Text>
-            )}
-          </View>
+          <Text style={styles.copyHint}>(Tap to copy)</Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerTitle: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 20,
+    color: '#333',
   },
-  headerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    gap: 4,
-  },
-  editButton: {
-    backgroundColor: '#2196F3',
-  },
-  deleteButton: {
-    backgroundColor: '#F44336',
-  },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-  },
-  cancelButton: {
-    backgroundColor: '#9E9E9E',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '500',
-  },
-  imageGallery: {
-    padding: 16,
+  instructions: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
   },
   image: {
     width: 200,
-    height: 150,
-    borderRadius: 8,
-    marginRight: 8,
+    height: 200,
+    marginVertical: 20,
+    borderRadius: 10,
   },
-  addImageButton: {
-    flexDirection: 'row',
+  linkContainer: {
+    marginTop: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    gap: 8,
   },
-  addImageText: {
-    color: '#0000ff',
-    fontSize: 16,
-  },
-  detailsContainer: {
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-    color: '#666',
-  },
-  value: {
-    fontSize: 16,
+  linkText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#333',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+  link: {
     fontSize: 16,
+    color: 'blue',
+    marginTop: 5,
+    textDecorationLine: 'underline',
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  copyHint: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
   },
 });
 
-export default RestaurantViewScreen;
+
+
+export default CloudinaryUploadPage;

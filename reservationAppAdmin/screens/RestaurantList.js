@@ -10,12 +10,12 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  Clipboard, // Import Clipboard
 } from "react-native";
 import axios from "axios";
 import AddRestaurantForm from "../components/AddRestaurantForm";
 import { Ionicons } from "@expo/vector-icons";
 import LocationMap from "../components/LocationMarker";
-
 
 // Star Rating Component
 const StarRating = ({ rating }) => {
@@ -45,6 +45,9 @@ const RestaurantDetailsModal = ({
 
   if (!restaurant) return null;
 
+  const firstImage = restaurant.photos && restaurant.photos.length > 0 ? restaurant.photos[0] : null;
+  const remainingImages = restaurant.photos && restaurant.photos.length > 1 ? restaurant.photos.slice(1) : [];
+
   return (
     <SafeAreaView>
       <Modal
@@ -61,17 +64,10 @@ const RestaurantDetailsModal = ({
 
             <Text style={styles.modalTitle}>{restaurant.name}</Text>
 
-            {restaurant.images && restaurant.images.length > 0 && (
-              <FlatList
-                horizontal
-                data={restaurant.images}
-                renderItem={({ item }) => (
-                  <Image
-                          source={{ uri: item.image }}
-                          style={styles.menuItemImage}
-                        />
-                )}
-                keyExtractor={(item, index) => index.toString()}
+            {firstImage && (
+              <Image
+                source={{ uri: firstImage }}
+                style={styles.modalImage}
               />
             )}
 
@@ -132,22 +128,22 @@ const RestaurantDetailsModal = ({
 
             {activeTab === "Menu" && (
               <View>
-                <Text style={styles.menuTitle}>Menu:</Text>
+                <Text style={styles.menuTitle}>Top Dishes:</Text>
                 <FlatList
-                  data={restaurant.menu}
-                  renderItem={({ item }) => (
-                    <View style={styles.menuItemContainer}>
-                      <Text style={styles.menuItemName}>{item.name}</Text>
-                      {item.image && (
-                        <Image
-                          source={{ uri: item.image }}
-                          style={styles.menuItemImage}
-                        />
-                      )}
-                    </View>
-                  )}
-                  keyExtractor={(item, index) => index.toString()}
-                />
+  data={restaurant.menu} // Use the menu array
+  renderItem={({ item }) => (
+    <View style={styles.menuItemContainer}>
+      <Text style={styles.menuItemName}>{item.name}</Text>
+      {item.image && ( 
+        <Image
+          source={{ uri: item.image }}
+          style={styles.menuItemImage}
+        />
+      )}
+    </View>
+  )}
+  keyExtractor={(item, index) => index.toString()}
+/>
               </View>
             )}
 
@@ -205,19 +201,41 @@ const RestaurantDetailsModal = ({
                         ))}
                       </View>
                     ))}
-                  <LocationMap
-                    latitude={restaurant.latitude}
-                    longitude={restaurant.longitude}
-                    style={styles.modalMap}
-                  />
+                  {restaurant.location && restaurant.location.latitude && restaurant.location.longitude ? (
+                    <LocationMap
+                      latitude={restaurant.location.latitude}
+                      longitude={restaurant.location.longitude}
+                      style={styles.modalMap}
+                    />
+                  ) : (
+                    <Text style={styles.noCoordinatesText}>
+                      No coordinates available for this restaurant.
+                    </Text>
+                  )}
                 </View>
               </ScrollView>
             )}
 
             {activeTab === "Reviews" && (
               <View>
-                {/* Add review content here */}
-                <Text>No reviews for now</Text>
+                {restaurant.reviews && restaurant.reviews.length > 0 ? (
+                  <FlatList
+                    data={restaurant.reviews}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({ item }) => (
+                      <View style={styles.reviewContainer}>
+                        <Text style={styles.reviewUser}>{item.user}</Text>
+                        <StarRating rating={item.rating} />
+                        <Text style={styles.reviewComment}>{item.comment}</Text>
+                        <Text style={styles.reviewDate}>
+                          {new Date(item.date).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    )}
+                  />
+                ) : (
+                  <Text style={styles.noReviewsText}>No reviews for now.</Text>
+                )}
               </View>
             )}
 
@@ -255,7 +273,7 @@ const RestaurantManagement = () => {
   const fetchRestaurants = async () => {
     try {
       const response = await axios.get(
-        "https://reservationadminrn-pdla.onrender.com/api/restaurants"
+        "http://192.168.18.15:3000/api/restaurants"
       );
       setRestaurants(response.data);
     } catch (error) {
@@ -266,7 +284,7 @@ const RestaurantManagement = () => {
   const handleDeleteRestaurant = async (restaurantId) => {
     try {
       await axios.delete(
-        `https://reservationadminrn-pdla.onrender.com/api/restaurants/${restaurantId}`
+        `http://192.168.18.15:3000/api/restaurants/${restaurantId}`
       );
       fetchRestaurants();
       setIsDetailsModalVisible(false);
@@ -295,27 +313,44 @@ const RestaurantManagement = () => {
     fetchRestaurants();
   }, []);
 
-  const renderRestaurantItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.restaurantItem}
-      onPress={() => {
-        setSelectedRestaurant(item);
-        setIsDetailsModalVisible(true);
-      }}
-    >
-      <View style={styles.restaurantItemContent}>
-      <Image
-                          source={{ uri: item.image }}
-                          style={styles.menuItemImage}
-                        />
-        <View style={styles.restaurantDetails}>
-          <Text style={styles.restaurantName}>{item.name}</Text>
-          <Text>{item.cuisine}</Text>
-          <StarRating rating={item.rating} />
+  const renderRestaurantItem = ({ item }) => {
+    const handleCopyID = () => {
+      Clipboard.setString(item._id);
+      Alert.alert('Copied!', 'Restaurant ID has been copied to clipboard.');
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.restaurantItem}
+        onPress={() => {
+          setSelectedRestaurant(item);
+          setIsDetailsModalVisible(true);
+        }}
+      >
+        <View style={styles.restaurantItemContent}>
+        {item.photos && item.photos.length > 0 && (
+          <Image
+            source={{ uri: item.photos[0] }} // Use the first photo from the photos array
+            style={styles.restaurantThumbnail}
+          />
+        )}
+          <View style={styles.restaurantDetails}>
+            <Text style={styles.restaurantName}>{item.name}</Text>
+            <View style={styles.idContainer}>
+              <Text style={styles.restaurantID} selectable={true}>
+                {item._id}
+              </Text>
+              <TouchableOpacity onPress={handleCopyID}>
+                <Ionicons name="copy" size={16} color="#007BFF" />
+              </TouchableOpacity>
+            </View>
+            <Text>{item.cuisine}</Text>
+            <StarRating rating={item.rating} />
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -512,6 +547,12 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: "#E74C3C",
   },
+  modalImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
   modalButtonText: {
     color: "white",
     marginLeft: 8,
@@ -560,6 +601,31 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 8,
     overflow: "hidden",
+  },
+  reviewContainer: {
+    padding: 16,
+    marginBottom: 16,
+    backgroundColor: "#F9F9F9",
+    borderRadius: 8,
+  },
+  reviewUser: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  reviewComment: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: "#666",
+  },
+  noReviewsText: {
+    textAlign: "center",
+    marginTop: 16,
+    color: "#666",
   },
 });
 

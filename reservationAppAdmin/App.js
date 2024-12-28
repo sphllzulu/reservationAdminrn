@@ -2,7 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createDrawerNavigator } from "@react-navigation/drawer";
+import { Ionicons } from "@expo/vector-icons"; // For icons
 import AdminLogin from "./screens/AdminLogin";
 import RestaurantManagement from "./screens/RestaurantList";
 import ProfileScreen from "./screens/Profile";
@@ -11,8 +11,8 @@ import AnalyticsScreen from "./screens/AnalyticsScreen";
 import UserScreen from "./screens/UserScreen";
 import ReservationManager from "./screens/reservationScreen";
 import AddRestaurantScreen from "./screens/AddRestaurantScreen";
-import RestaurantViewScreen from './screens/RestaurantViewScreen';
-import { View, Text, StyleSheet } from "react-native";
+import RestaurantViewScreen from "./screens/RestaurantViewScreen";
+import ImgurUploadPage from "./screens/RestaurantViewScreen";
 
 // Stack Navigator
 const Stack = createStackNavigator();
@@ -20,58 +20,55 @@ const Stack = createStackNavigator();
 // Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
-// Drawer Navigator
-const Drawer = createDrawerNavigator();
-
-// Drawer Content
-const DrawerContent = ({ navigation }) => {
-  return (
-    <View style={styles.drawerContainer}>
-      <Text style={styles.drawerHeader}>Admin Dashboard</Text>
-      <Text style={styles.drawerItem} onPress={() => navigation.navigate("RestaurantManagement")}>
-        Manage Restaurants
-      </Text>
-      <Text style={styles.drawerItem} onPress={() => navigation.navigate("Profile")}>
-        Admin Profile
-      </Text>
-      <Text style={styles.drawerItem} onPress={() => navigation.navigate("Analytics")}>
-        Analytics
-      </Text>
-      <Text style={styles.drawerItem} onPress={() => navigation.navigate("User")}>
-        User Management
-      </Text>
-      <Text style={styles.drawerItem} onPress={() => navigation.navigate("Reservation")}>
-        Reservations
-      </Text>
-    </View>
-  );
-};
-
 // Tab Navigator
 const TabNavigator = () => {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { backgroundColor: "#000" },
-        tabBarActiveTintColor: "blue",
-        tabBarInactiveTintColor: "gray",
-      }}
+        tabBarStyle: { backgroundColor: "#fff" }, // White background for the tab bar
+        tabBarActiveTintColor: "green", // Green for active tab
+        tabBarInactiveTintColor: "gray", // Gray for inactive tab
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          // Set icons based on the route name
+          if (route.name === "RestaurantManagement") {
+            iconName = focused ? "restaurant" : "restaurant-outline";
+          } else if (route.name === "Profile") {
+            iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "AddRestaurantForm") {
+            iconName = focused ? "add-circle" : "add-circle-outline";
+          } else if (route.name === "Analytics") {
+            iconName = focused ? "analytics" : "analytics-outline";
+          } else if (route.name === "User") {
+            iconName = focused ? "people" : "people-outline";
+          } else if (route.name === "Reservation") {
+            iconName = focused ? "calendar" : "calendar-outline";
+          } else if (route.name === "ImageUpload") {
+            iconName = focused ? "image" : "image-outline";
+          }
+
+          // Return the appropriate icon
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
     >
       <Tab.Screen
         name="RestaurantManagement"
         component={RestaurantManagement}
-        options={{ title: "Manage Restaurants" }}
+        options={{ title: "Restaurants" }} // Title for the tab
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: "Admin Profile" }}
-      />
+      
       <Tab.Screen
         name="AddRestaurantForm"
         component={AddRestaurantScreen}
-        options={{ title: "Add Restaurant" }}
+        options={{ title: "Add" }}
+      />
+      <Tab.Screen
+        name="ImageUpload"
+        component={ImgurUploadPage}
+        options={{ title: "Image" }}
       />
       <Tab.Screen
         name="Analytics"
@@ -81,7 +78,7 @@ const TabNavigator = () => {
       <Tab.Screen
         name="User"
         component={UserScreen}
-        options={{ title: "User Management" }}
+        options={{ title: "Users" }}
       />
       <Tab.Screen
         name="Reservation"
@@ -89,31 +86,12 @@ const TabNavigator = () => {
         options={{ title: "Reservations" }}
       />
       <Tab.Screen
-        name="RestaurantView"
-        component={RestaurantViewScreen}
-        options={{ title: "Restaurant View" }}
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: "Profile" }}
       />
+      
     </Tab.Navigator>
-  );
-};
-
-// Drawer Navigator Wrapper
-const DrawerNavigator = () => {
-  return (
-    <Drawer.Navigator
-      drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={{
-        headerStyle: { backgroundColor: "#000" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "bold" },
-      }}
-    >
-      <Drawer.Screen
-        name="Main"
-        component={TabNavigator}
-        options={{ title: "Admin Dashboard" }}
-      />
-    </Drawer.Navigator>
   );
 };
 
@@ -129,32 +107,12 @@ const App = () => {
         />
         <Stack.Screen
           name="Main"
-          component={DrawerNavigator}
+          component={TabNavigator}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  drawerContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f8f9fa",
-  },
-  drawerHeader: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#000",
-  },
-  drawerItem: {
-    fontSize: 18,
-    marginBottom: 15,
-    color: "#007BFF",
-    fontWeight: "bold",
-  },
-});
 
 export default App;

@@ -17,7 +17,7 @@ const AdminLogin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'https://reservationadminrn-pdla.onrender.com/api/auth/login',
+        `http://192.168.18.15:3000/api/auth/login`,
         { email, password },
         { withCredentials: true }
       );
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     color: '#495057',
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#4CAF50',
     padding: 15,
     borderRadius: 8,
     width: '100%',
