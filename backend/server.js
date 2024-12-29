@@ -28,12 +28,11 @@ mongoose.connect(process.env.MONGO_URI, {
 // Middleware
 app.use(cors({
   origin: [
-    'exp://192.168.0.104:8081', 
-    'http://192.168.0.104:8081', 
-    'http://192.168.0.104:8081',
+     
     'http://192.168.18.15:3000',
     'https://reservationadminrn-pdla.onrender.com',
-    'https://reservationadminrn-1.onrender.com'
+    'https://reservationadminrn-1.onrender.com',
+    'https://reservationadminrn-2.onrender.com'
   ],
   credentials: true
 }));
