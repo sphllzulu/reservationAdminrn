@@ -9,10 +9,11 @@ const CloudinaryUploadPage = () => {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
 
-  // Your Cloudinary credentials
 
-  const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/dbicet7rg/image/upload`;
-  const UPLOAD_PRESET = 'images'; 
+
+
+  const CLOUDINARY_URL =process.env.EXPO_PUBLIC_CLOUDINARY_URL;
+  const UPLOAD_PRESET =process.env.EXPO_PUBLIC_UPLOAD_PRESET; 
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
