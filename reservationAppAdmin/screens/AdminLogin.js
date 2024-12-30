@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -39,6 +39,13 @@ const AdminLogin = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoContainer}>
+          <Image
+            source={require('../assets/Logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
       <Text style={styles.title}>Admin Login</Text>
 
       <TextInput
@@ -80,6 +87,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     backgroundColor: '#f8f9fa',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 180,
+    height: 70,
   },
   title: {
     fontSize: 26,
