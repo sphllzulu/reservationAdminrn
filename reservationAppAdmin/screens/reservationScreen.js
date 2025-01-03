@@ -140,11 +140,19 @@ const ReservationManager = () => {
   };
 
   const filteredReservations = reservations.filter(res => {
-    const restaurantId = res.restaurantId ? (typeof res.restaurantId === 'object' ? res.restaurantId._id : res.restaurantId) : null;
+    const searchTerm = searchQuery.toLowerCase();
+    const customerName = res.customerName || '';
+    const emailAddress = res.emailAddress || '';
+    const restaurantId = res.restaurantId 
+      ? (typeof res.restaurantId === 'object' 
+         ? res.restaurantId._id 
+         : res.restaurantId)
+      : '';
+  
     return (
-      res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.emailAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (restaurantId && restaurantId.toLowerCase().includes(searchQuery.toLowerCase()))
+      customerName.toLowerCase().includes(searchTerm) ||
+      emailAddress.toLowerCase().includes(searchTerm) ||
+      restaurantId.toLowerCase().includes(searchTerm)
     );
   });
 
