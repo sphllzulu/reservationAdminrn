@@ -65,11 +65,7 @@ const TabNavigator = () => {
         component={AddRestaurantScreen}
         options={{ title: "Add" }}
       />
-      <Tab.Screen
-        name="ImageUpload"
-        component={ImgurUploadPage}
-        options={{ title: "Image" }}
-      />
+      
       <Tab.Screen
         name="Analytics"
         component={AnalyticsScreen}

@@ -149,70 +149,82 @@ const RestaurantDetailsModal = ({
 
             {activeTab === "Details" && (
               <ScrollView>
-                <View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Address:</Text>
-                    <Text>{restaurant.address}</Text>
-                  </View>
+                <View style={styles.detailsContent}>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Address:</Text>
+        <Text style={styles.detailText}>{restaurant.address || 'N/A'}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Phone:</Text>
-                    <Text>{restaurant.phone}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Phone:</Text>
+        <Text style={styles.detailText}>{restaurant.phone || 'N/A'}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Cuisine:</Text>
-                    <Text>{restaurant.cuisine}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Cuisine:</Text>
+        <Text style={styles.detailText}>{restaurant.cuisine || 'N/A'}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Rating:</Text>
-                    <StarRating rating={restaurant.rating} />
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Rating:</Text>
+        <StarRating rating={restaurant.rating || 0} />
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Price:</Text>
-                    <Text>${restaurant.pricePerReservation}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Price:</Text>
+        <Text style={styles.detailText}>
+          ${restaurant.pricePerReservation || 'N/A'}
+        </Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Dress Code:</Text>
-                    <Text>{restaurant.dressCode}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Dress Code:</Text>
+        <Text style={styles.detailText}>{restaurant.dressCode || 'N/A'}</Text>
+      </View>
 
-                  <Text style={styles.descriptionTitle}>Description:</Text>
-                  <Text style={styles.description}>
-                    {restaurant.description}
+      <View style={styles.descriptionContainer}>
+        <Text style={styles.descriptionTitle}>Description:</Text>
+        <Text style={styles.description}>
+          {restaurant.description || 'No description available'}
+        </Text>
+      </View>
+
+      <View style={styles.timeSlotsContainer}>
+        <Text style={styles.descriptionTitle}>Available Time Slots:</Text>
+        {restaurant.availableTimeSlots && restaurant.availableTimeSlots.length > 0 ? (
+          restaurant.availableTimeSlots.map((daySlot, index) => (
+            <View key={index} style={styles.timeSlotContainer}>
+              {daySlot.slots && daySlot.slots.map((slot, slotIndex) => (
+                <View key={slotIndex} style={styles.timeSlotDetails}>
+                  <Text style={styles.timeSlotText}>Time: {slot.time || 'N/A'}</Text>
+                  <Text style={styles.timeSlotText}>
+                    Max Reservations: {slot.maxReservations || 'N/A'}
                   </Text>
-
-                  <Text style={styles.descriptionTitle}>
-                    Available Time Slots:
-                  </Text>
-                  {restaurant.availableTimeSlots &&
-                    restaurant.availableTimeSlots.map((daySlot, index) => (
-                      <View key={index} style={styles.timeSlotContainer}>
-                        {daySlot.slots.map((slot, slotIndex) => (
-                          <View key={slotIndex} style={styles.timeSlotDetails}>
-                            <Text>Time: {slot.time}</Text>
-                            <Text>
-                              Max Reservations: {slot.maxReservations}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ))}
-                  {restaurant.location && restaurant.location.latitude && restaurant.location.longitude ? (
-                    <LocationMap
-                      latitude={restaurant.location.latitude}
-                      longitude={restaurant.location.longitude}
-                      style={styles.modalMap}
-                    />
-                  ) : (
-                    <Text style={styles.noCoordinatesText}>
-                      No coordinates available for this restaurant.
-                    </Text>
-                  )}
                 </View>
+              ))}
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noDataText}>No time slots available</Text>
+        )}
+      </View>
+
+      {restaurant.location && 
+       restaurant.location.latitude && 
+       restaurant.location.longitude ? (
+        <View style={styles.mapContainer}>
+          <LocationMap
+            latitude={restaurant.location.latitude}
+            longitude={restaurant.location.longitude}
+            style={styles.modalMap}
+          />
+        </View>
+      ) : (
+        <Text style={styles.noCoordinatesText}>
+          No coordinates available for this restaurant.
+        </Text>
+      )}
+    </View>
               </ScrollView>
             )}
 
