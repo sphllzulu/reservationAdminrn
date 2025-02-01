@@ -12,6 +12,9 @@ A comprehensive restaurant reservation system with an admin dashboard that enabl
 - ⭐ Review and rating system
 - 📈 Restaurant analytics and reporting
 
+## Screenshot
+![Image](https://github.com/user-attachments/assets/60bb3144-da20-4859-bbd7-16ff9f7bc174)
+
 ## Tech Stack
 
 - **Frontend:** React.js, expo,
