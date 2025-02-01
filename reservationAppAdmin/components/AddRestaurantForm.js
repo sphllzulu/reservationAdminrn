@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import axios from "axios";
+import CloudinaryUploadPage from "../screens/RestaurantViewScreen";
 
 const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
   const [name, setName] = useState("");
@@ -248,7 +249,7 @@ const AddRestaurantForm = ({ fetchRestaurants, restaurant, onClose }) => {
           <Text style={styles.amenityText}>{amenity}</Text>
         </TouchableOpacity>
       ))}
-        <Text>To generate image urls please navigate to the image tab</Text>
+        <CloudinaryUploadPage/>
 
       {/* Photos */}
       <Text style={styles.sectionTitle}>Add Photos</Text>

@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import axios from "axios";
+import CloudinaryUploadPage from "./RestaurantViewScreen";
 
 const AddRestaurantScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -199,7 +200,7 @@ const AddRestaurantScreen = ({ navigation }) => {
           <Text style={styles.amenityText}>{amenity}</Text>
         </TouchableOpacity>
       ))}
-     <Text>To generate imageurls please navigate to the image tab</Text>
+     <CloudinaryUploadPage/>
       {/* Photos */}
       <Text style={styles.sectionTitle}>Restaurant Photos</Text>
       {photos.map((photoUrl, index) => (
