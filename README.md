@@ -134,4 +134,5 @@ npm start
 
 ## Documentation Link
  - https://docs.google.com/document/d/1y7V0_tuXOCXYUv_m7voCTDQahZjnEQ4idSkSJh-SZKg/edit?usp=sharing
- 
+## Download APK
+https://drive.google.com/file/d/1TwnLB02B5xKc_2yuIqGqgxHX-ECEVNYK/view?usp=drivesdk
